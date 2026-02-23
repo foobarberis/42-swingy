@@ -1,20 +1,20 @@
 package com.swingy.controller;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.swingy.model.Hero;
 import com.swingy.model.world.EnemyInstance;
+import com.swingy.model.world.EntityPlacer;
 import com.swingy.model.world.FogOfWar;
 import com.swingy.model.world.Maze;
 import com.swingy.model.world.MazeGenerator;
 import com.swingy.model.world.Position;
 import com.swingy.model.world.TileType;
-import com.swingy.model.world.EntityPlacer;
 import com.swingy.persistence.HeroRepository;
 import com.swingy.util.RandomProvider;
 import com.swingy.view.View;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class GameController {
     private final MazeGenerator mazeGenerator;
@@ -62,21 +62,25 @@ public class GameController {
             switch (cmd) {
                 case "north", "n", "south", "s", "east", "e", "west", "w" -> {
                     movementAttempt = true;
+					view.renderLook(fogOfWar.viewport(maze, heroPos));
                     Position dst = moveTarget(heroPos, cmd);
                     if (!maze.isInside(dst) || maze.terrainAt(dst) == TileType.WALL) {
-                        view.println("You cannot go there.");
+                        view.println("You cannot go there.\n");
                     } else {
                         heroPos = dst;
+                        if (maze.potionPos() != null && heroPos.equals(maze.potionPos())) {
+                            drinkPotion(view, hero, maze);
+                        }
                         EnemyInstance steppedEnemy = enemyAt(maze, heroPos);
                         if (maze.terrainAt(heroPos) == TileType.EXIT) {
-                            view.println("Victory! You escaped the maze.");
+                            view.println("Victory! You escaped the maze.\n");
                             saveSafely(hero);
                             return MissionResult.RETURN_MENU;
                         }
                         if (steppedEnemy != null) {
                             EncounterResult result = encounter(view, hero, steppedEnemy, turnStart, false);
                             if (result == EncounterResult.HERO_DIED) {
-                                view.println("You died. Your hero has been removed.");
+                                view.println("You died. Your hero has been removed.\n");
                                 deleteSafely(hero.getName());
                                 return MissionResult.RETURN_MENU;
                             }
@@ -89,17 +93,8 @@ public class GameController {
                         }
                     }
                 }
-                case "look", "l" -> {
-                    view.renderLook(fogOfWar.viewport(maze, heroPos));
-                    if (maze.potionPos() != null && maze.potionPos().equals(heroPos)) {
-                        if (promptPotion(view, hero)) {
-                            maze.setPotionPos(null);
-                        }
-                    }
-                    continue;
-                }
                 default -> {
-                    view.println("Unknown command. Available commands: north (n), south (s), east (e), west (w), look (l)");
+                    view.println("Unknown command. Available commands: north (n), south (s), east (e), west (w).\n");
                     continue;
                 }
             }
@@ -138,17 +133,18 @@ public class GameController {
         }
     }
 
-    private boolean promptPotion(View view, Hero hero) {
+    private void drinkPotion(View view, Hero hero, Maze maze) {
         while (true) {
             view.println("You have found a health potion, do you want to drink it [Y/n]?");
             String in = view.readLine();
-            if (in == null) return false;
+            if (in == null) return;
             String a = in.trim().toLowerCase();
             if (a.isEmpty() || a.equals("y")) {
                 hero.heal(hero.baseMaxHp() / 2);
-                return true;
+                maze.setPotionPos(null);
+                return;
             }
-            if (a.equals("n")) return false;
+            if (a.equals("n")) return;
             view.println("Please answer with y or n.");
         }
     }

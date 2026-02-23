@@ -270,7 +270,7 @@ Unknown command behavior:
 ### 3.2 In-Game (Exploration)
 - Movement: `north|south|east|west` (aliases: `n|s|e|w`)
 - Map: the fog-of-war viewport is printed automatically on every movement attempt.
-  - If the hero is standing on the potion tile when a movement is attempted, print the drink prompt (see Health).
+  - If the hero steps onto the potion tile, print the drink prompt (see Health).
 
 Minimalism decisions:
 - No `help` command (unknown-command output lists available commands).
@@ -709,11 +709,11 @@ Definitions:
   2. Defend-vs-Defend may allow a heal (via QTE outcome).
 
 Potion interaction rules:
-- If the hero is standing on the potion tile when a movement is attempted, immediately show the prompt:
+- If the hero steps onto the potion tile, immediately show the prompt:
   - `"You have found a health potion, do you want to drink it [Y/n]?"`
 - If the player answers `Y`, the potion is consumed, heals **50% of base max HP** (capped at effective max HP), and the potion disappears.
-- If the player answers `n`, the potion remains on the tile.
-- The potion tile is always passable; the player can walk over it without consuming it.
+- If the player answers `n`, nothing happens and the potion remains on the tile.
+- The potion tile is passable; stepping onto it always triggers the prompt. The prompt is shown again the next time the hero steps onto the potion tile.
 
 ---
 
@@ -1241,9 +1241,9 @@ Run resolution:
   - If the encounter was caused by enemy movement **and** `turnStartPos` equals current hero tile (rare case: blocked move), then on run success the enemy’s move is undone (enemy returns to its pre-move position tracked by the movement phase). This preserves “return to previous position” semantics and avoids hero/enemy sharing.
 - Failure → combat starts.
 
-#### 2.3.6 Potion prompt (on movement attempt)
+#### 2.3.6 Potion prompt (on stepping onto potion)
 Condition:
-- hero is standing on potion coordinate and attempts a movement command.
+- hero moves onto the potion coordinate.
 
 Prompt:
 - Print exact:
@@ -1256,7 +1256,7 @@ Input:
 - `n` → do nothing, potion remains
 - invalid → `Please answer with y or n.` and re-prompt
 
-Potion is passable; walking onto it does not prompt.
+Potion is passable; stepping onto it prompts. The prompt is shown again the next time the hero steps onto the potion tile.
 
 #### 2.3.7 Victory flow
 Trigger:
