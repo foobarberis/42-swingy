@@ -232,7 +232,7 @@ Invalid movement:
         - If two enemies would move into the same tile, earlier enemies in the iteration order move first; later enemies see the tile as occupied and therefore cannot move there.
    - If an enemy moves onto the player, mark an encounter as pending, but **continue moving the remaining enemies**. After all enemy moves are processed, start the encounter.
 
-Non-movement commands (e.g. `look`) do not advance enemy movement.
+There is no dedicated map-inspection command; the fog-of-war viewport is rendered automatically on every movement attempt.
 
 ### 2.3 Win/Lose
 - **Win:** reaching any exit tile on the maze edge.
@@ -251,7 +251,7 @@ Non-movement commands (e.g. `look`) do not advance enemy movement.
 Unknown command behavior:
 - **Exploration:** unknown command does **not** consume a turn. Print:
   ```text
-  Unknown command. Available commands: north (n), south (s), east (e), west (w), look (l)
+  Unknown command. Available commands: north (n), south (s), east (e), west (w).
   ```
 - **Combat:** unknown command **does** consume the turn (treated as Idle). Print:
   ```text
@@ -269,8 +269,8 @@ Unknown command behavior:
 
 ### 3.2 In-Game (Exploration)
 - Movement: `north|south|east|west` (aliases: `n|s|e|w`)
-- `look` (alias: `l`): print the fog-of-war map view.
-  - If the hero is standing on the potion tile, print the drink prompt (see Health). No separate "You see a health potion." message.
+- Map: the fog-of-war viewport is printed automatically on every movement attempt.
+  - If the hero is standing on the potion tile when a movement is attempted, print the drink prompt (see Health).
 
 Minimalism decisions:
 - No `help` command (unknown-command output lists available commands).
@@ -374,27 +374,31 @@ Symbols (CLI):
 Rendering rules (overlay entities):
 - The maze terrain is `#` (wall), `.` (floor), `X` (exit).
 - Potions and enemies are **overlay entities** rendered on top of floor tiles (they never replace walls).
-- Overlay precedence in CLI `look` rendering:
+- Overlay precedence in CLI viewport rendering:
   - Enemy > potion > floor
   - Player > potion > floor
-  - (Player and enemy cannot both be shown because `look` is not used during combat; in exploration, the player is never on an enemy tile.)
+  - (Player and enemy cannot both be shown in exploration, because an encounter starts immediately when stepping onto an enemy tile.)
 - Overlay precedence in GUI world rendering:
   - Player > enemy > potion > floor
   - (Player may share a tile with an enemy at encounter start; the player sprite is drawn on top.)
 
 Fog-of-war is mandatory (viewport-based rendering):
-- `look` does **not** print the full maze.
-- It prints a fixed-size **5×5** window centered on the hero (radius 2).
+- The map view is a fixed-size **11x11** window centered on the hero.
+- The viewport is printed automatically on every movement attempt.
 - If the window extends outside the maze bounds, out-of-bounds cells are printed as a space ` `.
 - The window shows all entities/tiles inside it (walls, floors, exits, potion, enemies); there is no line-of-sight blocking by walls.
 
-Example `look` output (5×5 window):
+Example viewport output (11x11 window):
 ```text
-#..M.
-#.#..
-#.@..
-#...#
-...#X
+ ####X####
+ #.......#
+ #.#####.#
+ #.#.....#
+ X.#..##.X
+ #.#.@!#.#
+ #.#####.#
+ #.M.M...#
+ ####X####
 ```
 
 ### 6.3 Maze Generation (self-contained)
@@ -705,9 +709,8 @@ Definitions:
   2. Defend-vs-Defend may allow a heal (via QTE outcome).
 
 Potion interaction rules:
-- The potion is only interactable via the `look` command (CLI and GUI).
-  - If the hero is standing on the potion tile and uses `look`, immediately show the prompt (textual, not a GUI pop-up):
-    - `"You have found a health potion, do you want to drink it [Y/n]?"`
+- If the hero is standing on the potion tile when a movement is attempted, immediately show the prompt:
+  - `"You have found a health potion, do you want to drink it [Y/n]?"`
 - If the player answers `Y`, the potion is consumed, heals **50% of base max HP** (capped at effective max HP), and the potion disappears.
 - If the player answers `n`, the potion remains on the tile.
 - The potion tile is always passable; the player can walk over it without consuming it.
@@ -854,7 +857,7 @@ Example:
 ```
 
 ### 12.1 CLI
-- `look` prints the viewport map.
+- The viewport map is printed automatically on every movement attempt.
 - After each command resolution, print the prompt/status line and read the next command.
 
 ### 12.2 GUI
@@ -1165,12 +1168,12 @@ Exploration loop iteration:
 1. Read untimed command.
 2. Parse command:
    - movement: `north|south|east|west` and aliases `n|s|e|w`
-   - `look|l`
    - unknown
 
 Movement command turn order (GDD exact):
 1. Save `turnStartPos = hero.pos`.
-2. Attempt to move 1 tile.
+2. Render the fog-of-war viewport centered on the hero.
+3. Attempt to move 1 tile.
    - if destination is wall or outside bounds:
      - consume the turn
      - print exact: `You cannot go there.`
@@ -1185,17 +1188,15 @@ Movement command turn order (GDD exact):
        - **do not** run enemy movement phase
      - else proceed to enemy movement phase
 
-Non-movement commands:
-- `look`:
-  - does **not** advance enemy movement.
-  - render 5×5 fog-of-war window.
-  - if hero stands on potion tile, immediately run potion prompt flow (2.3.6).
-- unknown exploration command:
-  - does **not** consume turn.
-  - print exact:
-    ```
-    Unknown command. Available commands: north (n), south (s), east (e), west (w), look (l)
-    ```
+Map rendering:
+- Before resolving any movement attempt, render the fog-of-war viewport centered on the hero.
+
+Unknown exploration command:
+- does **not** consume turn.
+- print exact:
+  ```
+  Unknown command. Available commands: north (n), south (s), east (e), west (w).
+  ```
 
 Enemy movement phase (after a movement attempt, even if blocked):
 1. For each enemy in stored list order:
@@ -1240,9 +1241,9 @@ Run resolution:
   - If the encounter was caused by enemy movement **and** `turnStartPos` equals current hero tile (rare case: blocked move), then on run success the enemy’s move is undone (enemy returns to its pre-move position tracked by the movement phase). This preserves “return to previous position” semantics and avoids hero/enemy sharing.
 - Failure → combat starts.
 
-#### 2.3.6 Potion prompt (only via look)
+#### 2.3.6 Potion prompt (on movement attempt)
 Condition:
-- hero is standing on potion coordinate and issues `look`.
+- hero is standing on potion coordinate and attempts a movement command.
 
 Prompt:
 - Print exact:
@@ -1765,7 +1766,7 @@ Algorithm (GDD exact):
 5. If still insufficient, keep fewer enemies.
 
 ### 6.9 Entities are overlays; rendering precedence
-CLI `look` precedence (GDD exact):
+CLI viewport precedence (GDD exact):
 - Enemy > potion > floor
 - Player > potion > floor
 
@@ -2075,7 +2076,7 @@ Exploration:
 - Blocked movement:
   - `You cannot go there.`
 - Unknown command (does not consume turn):
-  - `Unknown command. Available commands: north (n), south (s), east (e), west (w), look (l)`
+  - `Unknown command. Available commands: north (n), south (s), east (e), west (w).`
 
 Combat:
 - Unknown command (consumes turn as Idle):
