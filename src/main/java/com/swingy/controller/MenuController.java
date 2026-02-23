@@ -1,12 +1,13 @@
 package com.swingy.controller;
 
+import java.util.List;
+
+import javax.validation.Validator;
+
 import com.swingy.model.Hero;
 import com.swingy.model.HeroClass;
 import com.swingy.persistence.HeroRepository;
 import com.swingy.view.View;
-
-import javax.validation.Validator;
-import java.util.List;
 
 public class MenuController {
     private final HeroRepository repository;
@@ -81,8 +82,9 @@ public class MenuController {
                 view.println("No heroes available.");
                 return;
             }
+			view.println("Available heroes:");
             for (Hero h : heroes) {
-                view.println(h.getName() + " " + h.getHeroClass().name() + " Lv." + h.getLevel());
+                view.println("  - " + h.getName() + " " + h.getHeroClass().name() + " Lv." + h.getLevel());
             }
         } catch (Exception e) {
             view.println("No heroes available.");
