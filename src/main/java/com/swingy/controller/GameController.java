@@ -90,7 +90,7 @@ public class GameController {
                     }
                 }
                 case "look", "l" -> {
-                    view.renderLook(fogOfWar.window5x5(maze, heroPos));
+                    view.renderLook(fogOfWar.viewport(maze, heroPos));
                     if (maze.potionPos() != null && maze.potionPos().equals(heroPos)) {
                         if (promptPotion(view, hero)) {
                             maze.setPotionPos(null);

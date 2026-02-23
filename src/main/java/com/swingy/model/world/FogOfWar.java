@@ -1,10 +1,15 @@
 package com.swingy.model.world;
 
 public class FogOfWar {
-    public char[][] window5x5(Maze maze, Position heroPos) {
-        char[][] out = new char[5][5];
-        for (int dy = -2; dy <= 2; dy++) {
-            for (int dx = -2; dx <= 2; dx++) {
+    public char[][] viewport(Maze maze, Position heroPos) {
+        char[][] out = new char[11][11];
+        int centerY = out.length / 2;
+        int centerX = out[0].length / 2;
+
+        for (int y = 0; y < out.length; y++) {
+            int dy = y - centerY;
+            for (int x = 0; x < out[y].length; x++) {
+                int dx = x - centerX;
                 Position p = new Position(heroPos.x() + dx, heroPos.y() + dy);
                 char c;
                 if (!maze.isInside(p)) {
@@ -25,7 +30,7 @@ public class FogOfWar {
                         };
                     }
                 }
-                out[dy + 2][dx + 2] = c;
+                out[y][x] = c;
             }
         }
         return out;

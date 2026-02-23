@@ -1489,7 +1489,7 @@ package "com.swingy.model.world" {
   }
 
   class FogOfWar {
-    + window5x5(maze: Maze, heroPos: Position): char[][]
+    + viewport(maze: Maze, heroPos: Position): char[][]
   }
 }
 
