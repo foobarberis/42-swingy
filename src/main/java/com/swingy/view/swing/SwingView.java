@@ -112,10 +112,6 @@ public class SwingView implements View {
         SwingUtilities.invokeLater(() -> logArea.append(s + "\n"));
     }
 
-    private void printPrompt() {
-        SwingUtilities.invokeLater(() -> logArea.append("> "));
-    }
-
     @Override
     public void println(String s, RenderColor color) {
         println(s);
@@ -138,7 +134,7 @@ public class SwingView implements View {
 
     @Override
     public String readLine() {
-        printPrompt();
+        SwingUtilities.invokeLater(() -> input.requestFocusInWindow());
         try {
             String value = queue.take();
             return EOF.equals(value) ? null : value;
@@ -150,7 +146,7 @@ public class SwingView implements View {
 
     @Override
     public String readLine(long timeoutMillis) {
-        printPrompt();
+        SwingUtilities.invokeLater(() -> input.requestFocusInWindow());
         try {
             String value = queue.poll(timeoutMillis, TimeUnit.MILLISECONDS);
             if (value == null) return null;
