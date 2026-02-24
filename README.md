@@ -545,6 +545,7 @@ Enemy telegraphing:
   - Defend = Blue
   - Sunder = Green
 - CLI uses ANSI escape codes for colors.
+- GUI uses Swing styled text in the log panel (`JTextPane` + `StyledDocument`) to render per-line action colors.
 
 ---
 
@@ -714,7 +715,7 @@ Example:
 - Layout (vertical stack, full width):
   1. Status line (hero stats) at the top
   2. World view (graphical tiles; currently placeholder shapes on a 32x32 grid)
-  3. Log panel (scrollable, full width)
+  3. Log panel (scrollable, full width; supports colored combat telegraphs)
   4. Text input field at the bottom (single-line)
 - No ASCII map rendering in GUI mode.
 - No `> ` prompt marker is printed in GUI mode.

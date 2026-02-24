@@ -1,6 +1,7 @@
 package com.swingy.view.swing;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -10,10 +11,14 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 import com.swingy.view.RenderColor;
 import com.swingy.view.View;
@@ -26,7 +31,7 @@ public class SwingView implements View {
     private volatile boolean quitLocked;
 
     private JFrame frame;
-    private JTextArea logArea;
+    private JTextPane logArea;
     private JTextField input;
     private JLabel status;
     private SwingWorldPanel worldPanel;
@@ -49,7 +54,7 @@ public class SwingView implements View {
         frame.setSize(800, 600);
 
         worldPanel = new SwingWorldPanel();
-        logArea = new JTextArea();
+        logArea = new JTextPane();
         logArea.setEditable(false);
         input = new JTextField();
         status = new JLabel();
@@ -109,12 +114,29 @@ public class SwingView implements View {
 
     @Override
     public void println(String s) {
-        SwingUtilities.invokeLater(() -> logArea.append(s + "\n"));
+        SwingUtilities.invokeLater(() -> appendLine(s, Color.BLACK));
     }
 
     @Override
     public void println(String s, RenderColor color) {
-        println(s);
+        Color swingColor = switch (color) {
+            case RED -> SwingStyles.ATTACK;
+            case BLUE -> SwingStyles.DEFEND;
+            case GREEN -> SwingStyles.SUNDER;
+            default -> Color.BLACK;
+        };
+        SwingUtilities.invokeLater(() -> appendLine(s, swingColor));
+    }
+
+    private void appendLine(String text, Color color) {
+        StyledDocument doc = logArea.getStyledDocument();
+        SimpleAttributeSet attrs = new SimpleAttributeSet();
+        StyleConstants.setForeground(attrs, color);
+        try {
+            doc.insertString(doc.getLength(), text + "\n", attrs);
+            logArea.setCaretPosition(doc.getLength());
+        } catch (BadLocationException ignored) {
+        }
     }
 
     @Override
