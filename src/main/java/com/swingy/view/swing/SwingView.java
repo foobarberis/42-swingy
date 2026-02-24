@@ -124,12 +124,7 @@ public class SwingView implements View {
 
     @Override
     public void renderMap(char[][] window) {
-        StringBuilder sb = new StringBuilder();
-        for (char[] row : window) {
-            sb.append(new String(row)).append('\n');
-        }
-        String out = sb.toString();
-        SwingUtilities.invokeLater(() -> worldPanel.setWorldText(out));
+        SwingUtilities.invokeLater(() -> worldPanel.setViewport(window));
     }
 
     @Override
