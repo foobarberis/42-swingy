@@ -102,8 +102,9 @@ Unknown command behavior:
   ```
 
 Input prompt:
-- In both console and GUI modes, every input read is prefixed with `> `.
-- Examples: `> attack`, `> north`.
+- Console mode: every input read is prefixed with `> `.
+- GUI mode: the text field is the prompt; no `> ` marker is printed into the log.
+- Examples (console): `> attack`, `> north`.
 
 ### 3.1 Starting Screen
 - `list`: list available heroes (also printed automatically on entering the starting screen).
@@ -116,7 +117,7 @@ Input prompt:
 
 ### 3.2 In-Game (Exploration)
 - Movement: `north|south|east|west` (aliases: `n|s|e|w`)
-- Map: the fog-of-war viewport is printed automatically before each in-mission input read.
+- Map: the fog-of-war viewport is rendered automatically before each in-mission input read (CLI prints ASCII; GUI draws tiles).
   - If the hero steps onto the potion tile, print the drink prompt (see Health).
 
 Minimalism decisions:
@@ -232,7 +233,7 @@ Rendering rules (overlay entities):
 
 Fog-of-war is mandatory (viewport-based rendering):
 - The logical map view is a fixed-size **11x11** window centered on the hero.
-- The viewport is printed automatically before each in-mission input read.
+- The viewport is rendered automatically before each in-mission input read (CLI prints ASCII; GUI draws tiles).
 - If the window extends outside the maze bounds, out-of-bounds cells are spaces (` `).
 - CLI output trims fully blank top/bottom rows and prints exactly one blank line above and below the visible map block.
 - The window shows all entities/tiles inside it (walls, floors, exits, potion, enemies); there is no line-of-sight blocking by walls.
@@ -707,14 +708,16 @@ Example:
 
 ### 12.1 CLI
 - Before each in-mission input read, print the status line and the viewport map.
-- Every input read prints a `> ` prefix as the input prompt (CLI and GUI).
+- Every input read prints a `> ` prefix as the input prompt.
 
 ### 12.2 GUI
-- Minimal layout:
-  1. World view (sprites)
-  2. Log panel
-  3. Text input field
-  4. The same prompt/status line displayed above the input (or as part of the log)
+- Layout (vertical stack, full width):
+  1. Status line (hero stats) at the top
+  2. World view (graphical tiles; currently placeholder shapes on a 32x32 grid)
+  3. Log panel (scrollable, full width)
+  4. Text input field at the bottom (single-line)
+- No ASCII map rendering in GUI mode.
+- No `> ` prompt marker is printed in GUI mode.
 - Combat deadline enforced via Swing timer.
 
 # Swingy — Technical Specification
@@ -1475,7 +1478,8 @@ Classes:
     - `void clearPending()` (queue.clear())
     - `void shutdown()`
   - Prompt rendering:
-    - `ConsoleView` and `SwingView` print `> ` immediately before each blocking or timed input read.
+    - `ConsoleView` prints `> ` immediately before each blocking or timed input read.
+    - `SwingView` does not print a prompt marker; the text field is the prompt.
 
 Thread lifecycle:
 1. `ConsoleView.start()` creates `ConsoleInput` and starts reader thread.
@@ -1718,7 +1722,9 @@ Per round:
 1. Enemy selects action.
 2. View prints telegraph line in color (ANSI / GUI colored):
    - includes enemy name and action.
-3. View prints player prompt (`> ` in both CLI and GUI).
+3. View requests player input:
+   - CLI prints the `> ` prompt prefix.
+   - GUI focuses the input field (no `> ` marker printed).
 4. Start 3s timer.
 5. Read player action (timed).
 
@@ -1933,8 +1939,9 @@ Deletion on death:
 These strings must match exactly (including punctuation and capitalization):
 
 Input prompt:
-- Prompt prefix before every input read (CLI and GUI):
+- CLI prompt prefix before every input read:
   - `> `
+- GUI: no prompt prefix is printed; the input field is the prompt.
 
 Exploration:
 - Blocked movement:
