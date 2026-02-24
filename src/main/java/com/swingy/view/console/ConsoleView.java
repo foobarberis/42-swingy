@@ -41,12 +41,19 @@ public class ConsoleView implements View {
 
     @Override
     public String readLine() {
+        printPrompt();
         return input.readBlocking();
     }
 
     @Override
     public String readLine(long timeoutMillis) {
+        printPrompt();
         return input.readTimed(timeoutMillis);
+    }
+
+    private void printPrompt() {
+        System.out.print("> ");
+        System.out.flush();
     }
 
     @Override

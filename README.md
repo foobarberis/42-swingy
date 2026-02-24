@@ -258,6 +258,10 @@ Unknown command behavior:
   Unknown command. Available commands: attack (a), defend (d), sunder (s)
   ```
 
+Input prompt:
+- In both console and GUI modes, every input read is prefixed with `> `.
+- Examples: `> attack`, `> north`.
+
 ### 3.1 Starting Screen
 - `list`: list available heroes (also printed automatically on entering the starting screen).
 - `load <name>`: load an existing hero by name.
@@ -859,6 +863,7 @@ Example:
 ### 12.1 CLI
 - The viewport map is printed automatically on every movement attempt.
 - After each command resolution, print the prompt/status line and read the next command.
+- Every input read prints a `> ` prefix as the input prompt (CLI and GUI).
 
 ### 12.2 GUI
 - Minimal layout:
@@ -1616,6 +1621,8 @@ Classes:
     - `String readLineTimed(long timeoutMs)` (queue.poll(timeoutMs, MILLISECONDS))
     - `void clearPending()` (queue.clear())
     - `void shutdown()`
+  - Prompt rendering:
+    - `ConsoleView` and `SwingView` print `> ` immediately before each blocking or timed input read.
 
 Thread lifecycle:
 1. `ConsoleView.start()` creates `ConsoleInput` and starts reader thread.
@@ -1858,7 +1865,7 @@ Per round:
 1. Enemy selects action.
 2. View prints telegraph line in color (ANSI / GUI colored):
    - includes enemy name and action.
-3. View prints player prompt.
+3. View prints player prompt (`> ` in both CLI and GUI).
 4. Start 3s timer.
 5. Read player action (timed).
 
@@ -2071,6 +2078,10 @@ Deletion on death:
 ## 11. UX strings (exact)
 
 These strings must match exactly (including punctuation and capitalization):
+
+Input prompt:
+- Prompt prefix before every input read (CLI and GUI):
+  - `> `
 
 Exploration:
 - Blocked movement:
