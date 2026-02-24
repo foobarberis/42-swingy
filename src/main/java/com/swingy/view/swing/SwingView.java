@@ -94,7 +94,7 @@ public class SwingView implements View {
     }
 
     @Override
-    public void renderLook(char[][] window) {
+    public void renderMap(char[][] window) {
         StringBuilder sb = new StringBuilder();
         for (char[] row : window) {
             sb.append(new String(row)).append('\n');

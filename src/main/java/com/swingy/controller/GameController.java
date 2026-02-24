@@ -49,6 +49,7 @@ public class GameController {
             }
 
             view.renderStatus(hero.statusLine());
+            view.renderMap(fogOfWar.viewport(maze, heroPos));
             String cmd = view.readLine();
             if (cmd == null || view.isClosed()) {
                 saveSafely(hero);
@@ -62,7 +63,6 @@ public class GameController {
             switch (cmd) {
                 case "north", "n", "south", "s", "east", "e", "west", "w" -> {
                     movementAttempt = true;
-					view.renderLook(fogOfWar.viewport(maze, heroPos));
                     Position dst = moveTarget(heroPos, cmd);
                     if (!maze.isInside(dst) || maze.terrainAt(dst) == TileType.WALL) {
                         view.println("You cannot go there.\n");

@@ -33,10 +33,27 @@ public class ConsoleView implements View {
     }
 
     @Override
-    public void renderLook(char[][] window) {
-        for (char[] row : window) {
-            System.out.println(new String(row));
+    public void renderMap(char[][] window) {
+        int top = 0;
+        int bottom = window.length - 1;
+
+        while (top <= bottom && isBlankRow(window[top])) top++;
+        while (bottom >= top && isBlankRow(window[bottom])) bottom--;
+
+        System.out.println();
+        if (top <= bottom) {
+            for (int i = top; i <= bottom; i++) {
+                System.out.println(new String(window[i]));
+            }
         }
+        System.out.println();
+    }
+
+    private boolean isBlankRow(char[] row) {
+        for (char c : row) {
+            if (c != ' ') return false;
+        }
+        return true;
     }
 
     @Override

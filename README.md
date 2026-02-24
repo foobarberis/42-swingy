@@ -232,7 +232,7 @@ Invalid movement:
         - If two enemies would move into the same tile, earlier enemies in the iteration order move first; later enemies see the tile as occupied and therefore cannot move there.
    - If an enemy moves onto the player, mark an encounter as pending, but **continue moving the remaining enemies**. After all enemy moves are processed, start the encounter.
 
-There is no dedicated map-inspection command; the fog-of-war viewport is rendered automatically on every movement attempt.
+There is no dedicated map-inspection command; the fog-of-war viewport is rendered automatically before each in-mission input read.
 
 ### 2.3 Win/Lose
 - **Win:** reaching any exit tile on the maze edge.
@@ -273,7 +273,7 @@ Input prompt:
 
 ### 3.2 In-Game (Exploration)
 - Movement: `north|south|east|west` (aliases: `n|s|e|w`)
-- Map: the fog-of-war viewport is printed automatically on every movement attempt.
+- Map: the fog-of-war viewport is printed automatically before each in-mission input read.
   - If the hero steps onto the potion tile, print the drink prompt (see Health).
 
 Minimalism decisions:
@@ -387,9 +387,10 @@ Rendering rules (overlay entities):
   - (Player may share a tile with an enemy at encounter start; the player sprite is drawn on top.)
 
 Fog-of-war is mandatory (viewport-based rendering):
-- The map view is a fixed-size **11x11** window centered on the hero.
-- The viewport is printed automatically on every movement attempt.
-- If the window extends outside the maze bounds, out-of-bounds cells are printed as a space ` `.
+- The logical map view is a fixed-size **11x11** window centered on the hero.
+- The viewport is printed automatically before each in-mission input read.
+- If the window extends outside the maze bounds, out-of-bounds cells are spaces (` `).
+- CLI output trims fully blank top/bottom rows and prints exactly one blank line above and below the visible map block.
 - The window shows all entities/tiles inside it (walls, floors, exits, potion, enemies); there is no line-of-sight blocking by walls.
 
 Example viewport output (11x11 window):
@@ -861,8 +862,7 @@ Example:
 ```
 
 ### 12.1 CLI
-- The viewport map is printed automatically on every movement attempt.
-- After each command resolution, print the prompt/status line and read the next command.
+- Before each in-mission input read, print the status line and the viewport map.
 - Every input read prints a `> ` prefix as the input prompt (CLI and GUI).
 
 ### 12.2 GUI
@@ -1194,7 +1194,7 @@ Movement command turn order (GDD exact):
      - else proceed to enemy movement phase
 
 Map rendering:
-- Before resolving any movement attempt, render the fog-of-war viewport centered on the hero.
+- Before each in-mission input read, render the fog-of-war viewport centered on the hero.
 
 Unknown exploration command:
 - does **not** consume turn.
@@ -1334,8 +1334,9 @@ package "com.swingy.controller" {
 package "com.swingy.view" {
   interface View {
     + println(s: String): void
+    + println(s: String, color: RenderColor): void
     + renderStatus(status: String): void
-    + renderLook(window: char[][], colors: RenderColor[][]): void
+    + renderMap(window: char[][]): void
     + readLine(): String
     + readLine(timeoutMillis: long): String
     + clearPendingInput(): void
