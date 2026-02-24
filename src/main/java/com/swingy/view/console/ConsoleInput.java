@@ -11,7 +11,9 @@ public class ConsoleInput {
 
     private final LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private final Thread thread;
+    private final Object quitLockMonitor = new Object();
     private volatile boolean closed;
+    private volatile boolean quitLocked;
 
     public ConsoleInput() {
         thread = new Thread(this::runReader, "console-input-thread");
@@ -22,12 +24,31 @@ public class ConsoleInput {
     private void runReader() {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
             String line;
-            while ((line = reader.readLine()) != null) {
-                queue.offer(line);
+            while (true) {
+                line = reader.readLine();
+                if (line != null) {
+                    queue.offer(line);
+                    continue;
+                }
+                if (quitLocked) {
+                    System.out.println("\nYou cannot quit now.");
+                    synchronized (quitLockMonitor) {
+                        while (quitLocked) {
+                            try {
+                                quitLockMonitor.wait();
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                return;
+                            }
+                        }
+                    }
+                    continue;
+                }
+                closed = true;
+                System.out.println("\nEOF received (Ctrl-D). Your progress has been saved. Goodbye!");
+                queue.offer(EOF);
+                return;
             }
-            closed = true;
-            System.out.println("\nEOF received (Ctrl-D). Your progress has been saved. Goodbye!");
-            queue.offer(EOF);
         } catch (IOException e) {
             closed = true;
             queue.offer(EOF);
@@ -61,6 +82,15 @@ public class ConsoleInput {
 
     public void clearPending() {
         queue.clear();
+    }
+
+    public void setQuitLocked(boolean quitLocked) {
+        this.quitLocked = quitLocked;
+        if (!quitLocked) {
+            synchronized (quitLockMonitor) {
+                quitLockMonitor.notifyAll();
+            }
+        }
     }
 
     public boolean isClosed() {

@@ -79,6 +79,11 @@ public class ConsoleView implements View {
     }
 
     @Override
+    public void setQuitLocked(boolean locked) {
+        input.setQuitLocked(locked);
+    }
+
+    @Override
     public boolean isClosed() {
         return input.isClosed();
     }

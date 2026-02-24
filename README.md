@@ -284,6 +284,7 @@ Minimalism decisions:
 Exiting:
 - CLI: Ctrl-D (EOF) exits and prints: `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
 - GUI: closing the window exits.
+- During combat, quit attempts are blocked in both modes and print: `You cannot quit now.`
 - Exiting mid-mission saves only the hero state (stats/xp/gear/current HP). On next load, a new maze is generated (see Persistence).
 
 ### 3.3 Combat
@@ -1084,7 +1085,8 @@ Launch wiring:
 
 Exit handling:
 - On CLI EOF (Ctrl-D), the console input layer prints `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
-- On program close (EOF in CLI, window close in GUI), if a hero is currently in a mission, the controller triggers **mid-mission save** of hero state (maze not persisted) per GDD.
+- During combat, quit attempts are rejected and print `You cannot quit now.` in both CLI and GUI.
+- On program close (EOF in CLI, window close in GUI), if a hero is currently in a mission and combat is not active, the controller triggers **mid-mission save** of hero state (maze not persisted) per GDD.
 
 ---
 
@@ -1288,7 +1290,12 @@ Trigger:
 - CLI: EOF (Ctrl-D)
 - GUI: window close
 
-Sequence:
+Combat lock:
+- If combat is active, quit attempts are rejected and print `You cannot quit now.`
+- No save/exit occurs during combat.
+- After combat ends, a new quit attempt is required.
+
+Sequence (when not in combat):
 1. CLI only: print `EOF received (Ctrl-D). Your progress has been saved. Goodbye!` on EOF.
 2. Save hero state to `heroes.csv` (same format), regardless of location.
 3. Exit application.

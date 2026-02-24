@@ -10,6 +10,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 import java.awt.BorderLayout;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +20,7 @@ public class SwingView implements View {
 
     private final LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private volatile boolean closed;
+    private volatile boolean quitLocked;
 
     private JFrame frame;
     private JTextArea logArea;
@@ -40,7 +42,7 @@ public class SwingView implements View {
 
     private void init() {
         frame = new JFrame("Swingy");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         frame.setSize(900, 700);
 
         worldPanel = new SwingWorldPanel();
@@ -57,9 +59,20 @@ public class SwingView implements View {
 
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                if (quitLocked) {
+                    println("You cannot quit now.");
+                    return;
+                }
+                closeNow();
+            }
+
+            @Override
             public void windowClosed(java.awt.event.WindowEvent e) {
-                closed = true;
-                queue.offer(EOF);
+                if (!closed) {
+                    closed = true;
+                    queue.offer(EOF);
+                }
             }
         });
 
@@ -134,6 +147,11 @@ public class SwingView implements View {
     }
 
     @Override
+    public void setQuitLocked(boolean locked) {
+        quitLocked = locked;
+    }
+
+    @Override
     public boolean isClosed() {
         return closed;
     }
@@ -141,7 +159,14 @@ public class SwingView implements View {
     @Override
     public void close() {
         if (frame != null) {
-            SwingUtilities.invokeLater(() -> frame.dispose());
+            SwingUtilities.invokeLater(this::closeNow);
         }
+    }
+
+    private void closeNow() {
+        if (closed) return;
+        closed = true;
+        queue.offer(EOF);
+        frame.dispose();
     }
 }

@@ -26,9 +26,11 @@ public class CombatController {
     }
 
     public boolean fight(View view, Hero hero, Enemy enemy) {
-        while (hero.getCurrentHp() > 0 && enemy.getCurrentHp() > 0) {
-            hero.debuffState().beginRound();
-            enemy.debuffState().beginRound();
+        view.setQuitLocked(true);
+        try {
+            while (hero.getCurrentHp() > 0 && enemy.getCurrentHp() > 0) {
+                hero.debuffState().beginRound();
+                enemy.debuffState().beginRound();
 
             CombatAction enemyAction = switch (rng.nextInt(3)) {
                 case 0 -> CombatAction.ATTACK;
@@ -93,7 +95,10 @@ public class CombatController {
             promptEquip(view, hero, artifact);
         }
 
-        return true;
+            return true;
+        } finally {
+            view.setQuitLocked(false);
+        }
     }
 
     private Artifact randomArtifact(int mod) {
