@@ -18,8 +18,16 @@ Front-ends:
 
 View is selected at launch:
 ```bash
-java -jar swingy.jar console
-java -jar swingy.jar gui
+# build
+mvn clean package
+
+# run
+java -jar target/swingy.jar console
+java -jar target/swingy.jar gui
+
+# build + run via Maven profiles (explicit run step; does not bind to the build lifecycle)
+mvn -Pcli clean package exec:exec@run-cli
+mvn -Pgui clean package exec:exec@run-gui  # enables Swing font AA (-Dswing.aatext=true -Dawt.useSystemAAFontSettings=on)
 ```
 Runtime view switching is not implemented.
 
