@@ -1,19 +1,22 @@
 package com.swingy.view.swing;
 
-import com.swingy.view.RenderColor;
-import com.swingy.view.View;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
-import java.awt.BorderLayout;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+
+import com.swingy.view.RenderColor;
+import com.swingy.view.View;
 
 public class SwingView implements View {
     private static final String EOF = "__EOF__";
@@ -43,7 +46,7 @@ public class SwingView implements View {
     private void init() {
         frame = new JFrame("Swingy");
         frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        frame.setSize(900, 700);
+        frame.setSize(800, 600);
 
         worldPanel = new SwingWorldPanel();
         logArea = new JTextArea();
@@ -76,15 +79,32 @@ public class SwingView implements View {
             }
         });
 
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.add(status, BorderLayout.NORTH);
-        bottom.add(input, BorderLayout.SOUTH);
+        JScrollPane logScrollPane = new JScrollPane(logArea);
+
+        JPanel statusPanel = new JPanel(new BorderLayout());
+        statusPanel.add(status, BorderLayout.CENTER);
+
+        JPanel promptPanel = new JPanel(new BorderLayout());
+        promptPanel.add(input, BorderLayout.CENTER);
+
+        int oneLineHeight = input.getPreferredSize().height;
+        statusPanel.setPreferredSize(new Dimension(0, oneLineHeight));
+        statusPanel.setMinimumSize(new Dimension(0, oneLineHeight));
+        promptPanel.setPreferredSize(new Dimension(0, oneLineHeight));
+        promptPanel.setMinimumSize(new Dimension(0, oneLineHeight));
+
+        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, worldPanel, logScrollPane);
+        centerSplit.setResizeWeight(0.625);
+        centerSplit.setContinuousLayout(true);
+        centerSplit.setBorder(null);
 
         frame.setLayout(new BorderLayout());
-        frame.add(worldPanel, BorderLayout.CENTER);
-        frame.add(new JScrollPane(logArea), BorderLayout.EAST);
-        frame.add(bottom, BorderLayout.SOUTH);
+        frame.add(statusPanel, BorderLayout.NORTH);
+        frame.add(centerSplit, BorderLayout.CENTER);
+        frame.add(promptPanel, BorderLayout.SOUTH);
         frame.setVisible(true);
+
+        SwingUtilities.invokeLater(() -> centerSplit.setDividerLocation(0.625));
     }
 
     @Override
