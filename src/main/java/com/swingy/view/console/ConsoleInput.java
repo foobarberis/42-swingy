@@ -26,6 +26,7 @@ public class ConsoleInput {
                 queue.offer(line);
             }
             closed = true;
+            System.out.println("\nEOF received (Ctrl-D). Your progress has been saved. Goodbye!");
             queue.offer(EOF);
         } catch (IOException e) {
             closed = true;

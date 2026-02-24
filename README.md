@@ -282,7 +282,7 @@ Minimalism decisions:
 - No in-game `quit` command.
 
 Exiting:
-- CLI: Ctrl-D (EOF) exits.
+- CLI: Ctrl-D (EOF) exits and prints: `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
 - GUI: closing the window exits.
 - Exiting mid-mission saves only the hero state (stats/xp/gear/current HP). On next load, a new maze is generated (see Persistence).
 
@@ -1083,6 +1083,7 @@ Launch wiring:
 6. Create `AppController` and call `run()`.
 
 Exit handling:
+- On CLI EOF (Ctrl-D), the console input layer prints `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
 - On program close (EOF in CLI, window close in GUI), if a hero is currently in a mission, the controller triggers **mid-mission save** of hero state (maze not persisted) per GDD.
 
 ---
@@ -1288,8 +1289,9 @@ Trigger:
 - GUI: window close
 
 Sequence:
-1. Save hero state to `heroes.csv` (same format), regardless of location.
-2. Exit application.
+1. CLI only: print `EOF received (Ctrl-D). Your progress has been saved. Goodbye!` on EOF.
+2. Save hero state to `heroes.csv` (same format), regardless of location.
+3. Exit application.
 
 ---
 
