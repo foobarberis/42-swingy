@@ -41,6 +41,7 @@ public class GameController {
         entityPlacer.placeEnemies(maze, hero.getLevel());
 
         Position heroPos = maze.heroStart();
+        view.println("\nAvailable commands: north (n), south (s), east (e), west (w).\nMap symbols: '@' (player), 'M' (monster), 'U' (unique monster), '!' (potion), 'X' (exit), '.' (floor), '#' (wall).\n");
 
         while (true) {
             if (view.isClosed()) {
