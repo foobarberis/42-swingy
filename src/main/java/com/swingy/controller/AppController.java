@@ -23,8 +23,8 @@ public class AppController {
             }
             if (menu.type() == MenuController.MenuResult.Type.START) {
                 Hero hero = menu.hero();
-                GameController.MissionResult result = gameController.runMission(view, hero);
-                if (result == GameController.MissionResult.EXIT_APP) {
+                MissionResult result = gameController.runMission(view, hero);
+                if (result == MissionResult.EXIT_APP) {
                     break;
                 }
             }

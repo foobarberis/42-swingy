@@ -221,8 +221,4 @@ public class GameController {
         HERO_DIED
     }
 
-    public enum MissionResult {
-        RETURN_MENU,
-        EXIT_APP
-    }
 }
