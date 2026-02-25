@@ -15,7 +15,7 @@ public class Hero {
     @NotNull
     private HeroClass heroClass;
 
-    @Min(0)
+    @Min(1)
     private int level;
 
     @Min(0)
@@ -50,14 +50,14 @@ public class Hero {
     }
 
     public static Hero createNew(String name, HeroClass heroClass) {
-        Hero hero = new Hero(name, heroClass, 0, 0, heroClass.baseHp(), 0, 0, 0);
+        Hero hero = new Hero(name, heroClass, 1, 0, heroClass.baseHp(), 0, 0, 0);
         hero.currentHp = hero.effectiveMaxHp();
         return hero;
     }
 
-    public int baseAtk() { return heroClass.baseAtk() + level * 5; }
-    public int baseDef() { return heroClass.baseDef() + level * 5; }
-    public int baseMaxHp() { return heroClass.baseHp() + level * 10; }
+    public int baseAtk() { return heroClass.baseAtk() + (level - 1) * 5; }
+    public int baseDef() { return heroClass.baseDef() + (level - 1) * 5; }
+    public int baseMaxHp() { return heroClass.baseHp() + (level - 1) * 10; }
 
     public int effectiveAtk() { return baseAtk() + 3 * effectiveMod(weaponMod); }
     public int effectiveDef() { return baseDef() + 3 * effectiveMod(armorMod); }
@@ -67,14 +67,15 @@ public class Hero {
         return (int) Math.floor(EFFECTIVE_MOD_K * Math.log(1.0 + mod));
     }
 
-    public int xpThreshold(int targetLevel) {
-        return targetLevel * 1000 + (targetLevel - 1) * (targetLevel - 1) * 450;
+    public int xpThreshold(int level) {
+        return level * 1000 + (level - 1) * (level - 1) * 450;
     }
 
     public void addXp(int gain) {
         xp += gain;
         int levelsGained = 0;
-        while (xp >= xpThreshold(level + 1)) {
+        while (xp >= xpThreshold(level)) {
+            xp -= xpThreshold(level);
             level++;
             levelsGained++;
         }
@@ -98,7 +99,7 @@ public class Hero {
     public String statusLine() {
         return "[Lv. " + level + " " + heroClass.abbr() + " | " + currentHp + "/" + baseMaxHp() + " HP " +
                 effectiveAtk() + "/" + baseAtk() + " ATK " + effectiveDef() + "/" + baseDef() + " DEF | " + xp + "/" +
-                xpThreshold(level + 1) + " XP]";
+                xpThreshold(level) + " XP]";
     }
 
     public DebuffState debuffState() { return debuffState; }

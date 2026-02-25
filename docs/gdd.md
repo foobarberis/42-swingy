@@ -144,7 +144,7 @@ Level-up increases base stats:
 ### 4.2 Classes
 All heroes start with no equipment.
 
-Level 0 baselines (newly created heroes start at level 0):
+Level 1 baselines (newly created heroes start at level 1):
 - Warrior: HP 125 / ATK 10 / DEF 20
 - Rogue:   HP 100 / ATK 15 / DEF 15
 - Mage:    HP  75 / ATK 20 / DEF 10
@@ -159,12 +159,15 @@ XP_total(level) = level * 1000 + (level - 1)^2 * 450
 
 - No level cap.
 
-XP gain (simple, self-tuning):
-- Let `L` be the hero level (starting at 0).
-- Compute the XP gap to the next level:
+XP progression:
+- Let `L` be the current hero level (starting at 1).
+- XP required to level up from `L` to `L+1` is:
   ```text
-  xpToNext = XP_total(L + 1) - XP_total(L)
+  xpToNext = XP_total(L)
   ```
+  Example: at level 1, `xpToNext = 1000`.
+
+XP gain (simple, self-tuning):
 - Each defeated enemy grants:
   ```text
   xpGain = round(xpToNext / K)
@@ -184,7 +187,7 @@ The maze is a square grid.
 
 Raw size formula:
 ```text
-MapSizeRaw = L * 5 + 10 - (L % 2)
+MapSizeRaw = (L - 1) * 5 + 10 - (L % 2)
 ```
 
 Hard cap (safety):
@@ -236,7 +239,7 @@ Example viewport output (11x11 window):
 Map size:
 - Given hero level `L`, compute:
   ```text
-  MapSizeRaw = L * 5 + 10 - (L % 2)
+  MapSizeRaw = (L - 1) * 5 + 10 - (L % 2)
   MapSize = min(MapSizeRaw, 55)
   ```
 - Maze size is `MapSize × MapSize`.
@@ -390,9 +393,9 @@ Enemy level:
 Stats:
 - For enemy level `E = enemyLevel`:
   ```text
-  hp  = 100 + E * 10
-  atk =  15 + E * 5
-  def =  15 + E * 5
+  hp  = 100 + (E - 1) * 10
+  atk =  15 + (E - 1) * 5
+  def =  15 + (E - 1) * 5
   ```
 - Enemies spawn at full HP.
 
@@ -556,7 +559,7 @@ Drop rates (defaults):
 
 Dropped artifact modifier:
 ```text
-mod = enemyLevel
+mod = enemyLevel - 1
 ```
 
 Item naming convention (derived from hero class and slot):
@@ -623,7 +626,7 @@ Name constraints (to avoid CSV escaping):
 CSV columns (per line):
 1. `name`
 2. `class` (`WARRIOR|ROGUE|MAGE`)
-3. `level` (int; newly created heroes start at 0)
+3. `level` (int; newly created heroes start at 1)
 4. `xp` (int)
 5. `currentHp` (int)
 6. `weaponMod` (int)
@@ -670,7 +673,7 @@ Stat definitions (for the prompt):
 - `baseAtk/baseDef/baseMaxHp`: hero class baseline + level-up increments only (no artifacts).
 - `effectiveAtk/effectiveDef/effectiveMaxHp`: base stat plus equipped artifact bonuses.
 - `currentHp` is capped at `effectiveMaxHp`.
-- `xpNextThreshold`: total XP required to reach the next level (`XP_total(level + 1)`).
+- `xpNextThreshold`: XP required to reach the next level from current level (`XP_total(level)`).
 
 Prompt/status line format:
 ```text
@@ -678,7 +681,7 @@ Prompt/status line format:
 ```
 Example:
 ```text
-[Lv. 0 War. | 125/125 HP 10/10 ATK 20/20 DEF | 0/1000 XP]
+[Lv. 1 War. | 125/125 HP 10/10 ATK 20/20 DEF | 0/1000 XP]
 ```
 
 ### 12.1 CLI

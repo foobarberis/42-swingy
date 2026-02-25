@@ -85,9 +85,9 @@ public class EntityPlacer {
 
     private Enemy createEnemy(int heroLevel, boolean unique) {
         int level = unique ? heroLevel + 2 : heroLevel;
-        int hp = 100 + level * 10;
-        int atk = 15 + level * 5;
-        int def = 15 + level * 5;
+        int hp = 100 + (level - 1) * 10;
+        int atk = 15 + (level - 1) * 5;
+        int def = 15 + (level - 1) * 5;
         String name = unique ? UNIQUE_NAMES.get(rng.nextInt(UNIQUE_NAMES.size())) : NORMAL_NAMES.get(rng.nextInt(NORMAL_NAMES.size()));
         return new Enemy(name, unique, level, atk, def, hp);
     }

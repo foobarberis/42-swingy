@@ -101,13 +101,13 @@ public class CombatController {
             return false;
         }
 
-        int xpToNext = hero.xpThreshold(hero.getLevel() + 1) - hero.xpThreshold(hero.getLevel());
+        int xpToNext = hero.xpThreshold(hero.getLevel());
         int xpGain = Math.round(xpToNext / 15f);
         hero.addXp(xpGain);
 
         boolean shouldDrop = enemy.isUnique() || rng.chance(0.35);
         if (shouldDrop) {
-            Artifact artifact = randomArtifact(enemy.getLevel());
+            Artifact artifact = randomArtifact(enemy.getLevel() - 1);
             promptEquip(view, hero, artifact);
         }
 

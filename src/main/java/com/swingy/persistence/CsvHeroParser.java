@@ -19,11 +19,12 @@ public class CsvHeroParser {
         int weapon = parseNonNegative(p[5]);
         int armor = parseNonNegative(p[6]);
         int helm = parseNonNegative(p[7]);
-        if (level < 0) throw new IllegalArgumentException("Bad level");
+        if (level < 1) throw new IllegalArgumentException("Bad level");
 
         Hero hero = new Hero(p[0], cls, level, xp, hp, weapon, armor, helm);
         if (!hero.getName().matches("[A-Za-z0-9_-]{1,16}")) throw new IllegalArgumentException("Bad name");
         if (hero.getCurrentHp() > hero.effectiveMaxHp()) throw new IllegalArgumentException("HP too high");
+        if (hero.getXp() >= hero.xpThreshold(hero.getLevel())) throw new IllegalArgumentException("XP out of range");
         return hero;
     }
 
