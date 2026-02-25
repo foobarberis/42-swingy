@@ -59,39 +59,39 @@ public class GameController {
             cmd = cmd.trim().toLowerCase();
 
             Position turnStart = heroPos;
-            boolean movementAttempt = false;
 
             switch (cmd) {
                 case "north", "n", "south", "s", "east", "e", "west", "w" -> {
-                    movementAttempt = true;
                     Position dst = moveTarget(heroPos, cmd);
                     if (!maze.isInside(dst) || maze.terrainAt(dst) == TileType.WALL) {
                         view.println("You cannot go there.\n");
-                    } else {
-                        heroPos = dst;
-                        if (maze.potionPos() != null && heroPos.equals(maze.potionPos())) {
-                            drinkPotion(view, hero, maze);
-                        }
-                        EnemyInstance steppedEnemy = enemyAt(maze, heroPos);
-                        if (maze.terrainAt(heroPos) == TileType.EXIT) {
-                            view.println("Victory! You escaped the maze.\n");
-                            saveSafely(hero);
+                        continue;
+                    }
+
+                    heroPos = dst;
+                    if (maze.potionPos() != null && heroPos.equals(maze.potionPos())) {
+                        drinkPotion(view, hero, maze);
+                    }
+                    EnemyInstance steppedEnemy = enemyAt(maze, heroPos);
+                    if (maze.terrainAt(heroPos) == TileType.EXIT) {
+                        view.println("Victory! You escaped the maze.\n");
+                        saveSafely(hero);
+                        return MissionResult.RETURN_MENU;
+                    }
+                    if (steppedEnemy != null) {
+                        EncounterResult result = encounter(view, hero, steppedEnemy);
+                        if (result == EncounterResult.HERO_DIED) {
+                            view.println("You died. Your hero has been removed.\n");
+                            deleteSafely(hero.getName());
                             return MissionResult.RETURN_MENU;
                         }
-                        if (steppedEnemy != null) {
-                            EncounterResult result = encounter(view, hero, steppedEnemy, turnStart, false);
-                            if (result == EncounterResult.HERO_DIED) {
-                                view.println("You died. Your hero has been removed.\n");
-                                deleteSafely(hero.getName());
-                                return MissionResult.RETURN_MENU;
-                            }
-                            if (result == EncounterResult.ENEMY_DEFEATED) {
-                                maze.enemies().remove(steppedEnemy);
-                            }
-                            if (result == EncounterResult.ESCAPED) {
-                                heroPos = turnStart;
-                            }
+                        if (result == EncounterResult.ENEMY_DEFEATED) {
+                            maze.enemies().remove(steppedEnemy);
                         }
+                        if (result == EncounterResult.ESCAPED) {
+                            heroPos = turnStart;
+                        }
+                        continue;
                     }
                 }
                 default -> {
@@ -100,36 +100,12 @@ public class GameController {
                 }
             }
 
-            if (!movementAttempt) continue;
-
-            EnemyInstance pending = null;
             for (EnemyInstance enemy : new ArrayList<>(maze.enemies())) {
                 if (!rng.chance(0.25)) continue;
-                List<Position> options = validEnemyMoves(maze, enemy);
+                List<Position> options = validEnemyMoves(maze, enemy, heroPos);
                 if (options.isEmpty()) continue;
                 Position newPos = options.get(rng.nextInt(options.size()));
                 enemy.moveTo(newPos);
-                if (newPos.equals(heroPos) && pending == null) {
-                    pending = enemy;
-                }
-            }
-
-            if (pending != null) {
-                EncounterResult result = encounter(view, hero, pending, turnStart, true);
-                if (result == EncounterResult.HERO_DIED) {
-                    view.println("You died. Your hero has been removed.");
-                    deleteSafely(hero.getName());
-                    return MissionResult.RETURN_MENU;
-                }
-                if (result == EncounterResult.ENEMY_DEFEATED) {
-                    maze.enemies().remove(pending);
-                }
-                if (result == EncounterResult.ESCAPED) {
-                    heroPos = turnStart;
-                    if (heroPos.equals(turnStart) && pending.pos().equals(heroPos)) {
-                        pending.revertMove();
-                    }
-                }
             }
         }
     }
@@ -150,7 +126,7 @@ public class GameController {
         }
     }
 
-    private EncounterResult encounter(View view, Hero hero, EnemyInstance enemy, Position turnStart, boolean fromEnemyMovement) {
+    private EncounterResult encounter(View view, Hero hero, EnemyInstance enemy) {
         while (true) {
             view.println("You have encountered " + enemy.enemy().getName() + ", do you want to fight [Y/n]?");
             String in = view.readLine();
@@ -161,9 +137,6 @@ public class GameController {
             }
             if (a.equals("n")) {
                 if (rng.chance(0.5)) {
-                    if (fromEnemyMovement && turnStart.equals(enemy.pos())) {
-                        enemy.revertMove();
-                    }
                     return EncounterResult.ESCAPED;
                 }
                 return combatController.fight(view, hero, enemy.enemy()) ? EncounterResult.ENEMY_DEFEATED : EncounterResult.HERO_DIED;
@@ -172,12 +145,13 @@ public class GameController {
         }
     }
 
-    private List<Position> validEnemyMoves(Maze maze, EnemyInstance enemy) {
+    private List<Position> validEnemyMoves(Maze maze, EnemyInstance enemy, Position heroPos) {
         List<Position> out = new ArrayList<>();
         for (Position n : enemy.pos().neighbors4()) {
             if (!maze.isInside(n)) continue;
             if (maze.terrainAt(n) == TileType.WALL || maze.terrainAt(n) == TileType.EXIT) continue;
             if (maze.potionPos() != null && maze.potionPos().equals(n)) continue;
+            if (n.equals(heroPos)) continue;
             boolean occupied = false;
             for (EnemyInstance other : maze.enemies()) {
                 if (other != enemy && other.pos().equals(n)) {

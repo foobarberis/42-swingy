@@ -269,9 +269,9 @@ Exit handling:
 
 - `GameController`
   - Creates a fresh maze for the hero level.
-  - Runs exploration loop (movement + enemy movement phase).
+  - Runs exploration loop (player movement, conditional encounter, conditional enemy movement phase).
   - Detects victory (`X` reached) and triggers save.
-  - Triggers encounters when stepping into enemy or when enemy steps into hero.
+  - Triggers encounters only when the hero steps onto an enemy tile.
 
 - `CombatController`
   - Runs instanced combat loop with timed action input and QTE.
@@ -315,23 +315,27 @@ Exploration loop iteration:
    - movement: `north|south|east|west` and aliases `n|s|e|w`
    - unknown
 
-Movement command turn order (GDD exact):
+Movement command turn order (authoritative):
 1. Save `turnStartPos = hero.pos`.
-2. Render the fog of war viewport centered on the hero.
-3. Attempt to move 1 tile.
+2. Attempt to move 1 tile.
    - if destination is wall or outside bounds:
-     - consume the turn
      - print exact: `You cannot go there.`
-     - hero remains in place
-     - proceed to enemy movement phase
+     - do **not** consume the turn
+     - do **not** run enemy movement
+     - continue to next input
    - if destination is walkable floor/potion/exit:
      - update hero position
      - if destination is exit `X`:
-       - victory flow (2.3.7)
+       - victory flow (2.3.6)
      - if destination is occupied by enemy:
-       - start encounter immediately (2.3.5)
-       - **do not** run enemy movement phase
-     - else proceed to enemy movement phase
+       - start encounter immediately (2.3.4)
+       - apply encounter outcome:
+         - hero death → death flow
+         - enemy defeated → remove enemy
+         - escaped → `hero.pos = turnStartPos`
+       - encounter resolution consumes the turn
+       - skip enemy movement for this tick
+     - otherwise proceed to enemy movement phase
 
 Map rendering:
 - Before each in-mission input read, render the fog of war viewport centered on the hero.
@@ -343,30 +347,23 @@ Unknown exploration command:
   Unknown command. Available commands: north (n), south (s), east (e), west (w).
   ```
 
-Enemy movement phase (after a movement attempt, even if blocked):
+Enemy movement phase (only after a successful player move that did not start an encounter):
 1. For each enemy in stored list order:
    - roll move chance: 25%.
    - if not moving: continue.
    - compute valid neighbors (N/E/S/W) that are walkable and not blocked:
      - cannot move through walls
      - cannot move onto another enemy
+     - cannot move onto player tile
      - cannot move onto exit
      - cannot move onto potion
-     - can move onto player tile
      - can move onto the tile the player just left
    - choose uniformly random among valid tiles; move.
-   - if an enemy moves onto the player, mark `pendingEncounterEnemy` but continue moving remaining enemies.
-2. After all enemy moves, if `pendingEncounterEnemy != null`, start encounter (2.3.5).
+2. Enemy movement never starts an encounter.
 
-#### 2.3.4 Enemy movement “pending encounter” ownership
-- Only one encounter is started after the phase.
-- The encounter enemy is the **first** enemy (in iteration order) that ended on player tile.
-- Later enemies cannot enter the player tile because it becomes occupied by an enemy.
-
-#### 2.3.5 Encounter prompt
+#### 2.3.4 Encounter prompt
 Trigger:
-- hero stepped onto enemy tile, OR
-- enemy moved onto hero tile after enemy phase.
+- hero stepped onto enemy tile.
 
 Prompt (untimed):
 - Print exact:
@@ -383,10 +380,9 @@ Run resolution:
 - 50% chance success.
 - Success effect:
   - hero returns to `turnStartPos` (tile occupied at start of the hero’s movement command).
-  - If the encounter was caused by enemy movement **and** `turnStartPos` equals current hero tile (rare case: blocked move), then on run success the enemy’s move is undone (enemy returns to its pre-move position tracked by the movement phase). This preserves “return to previous position” semantics and avoids hero/enemy sharing.
 - Failure → combat starts.
 
-#### 2.3.6 Potion prompt
+#### 2.3.5 Potion prompt
 Condition:
 - hero moves onto the potion coordinate.
 
@@ -403,7 +399,7 @@ Input:
 
 Potion is passable; stepping onto it prompts. The prompt is shown again the next time the hero steps onto the potion tile.
 
-#### 2.3.7 Victory flow
+#### 2.3.6 Victory flow
 Trigger:
 - hero moves onto exit `X`.
 
@@ -413,7 +409,7 @@ Sequence:
 3. Return to MENU.
 4. Next time hero is loaded: generate a **new maze**.
 
-#### 2.3.8 Death flow
+#### 2.3.7 Death flow
 Trigger:
 - hero current HP reaches 0 in combat.
 
@@ -422,7 +418,7 @@ Sequence:
 2. Delete hero from `heroes.csv` (remove line).
 3. Return to MENU.
 
-#### 2.3.9 Mid-mission exit flow
+#### 2.3.8 Mid-mission exit flow
 Trigger:
 - CLI: EOF (Ctrl-D)
 - GUI: window close
