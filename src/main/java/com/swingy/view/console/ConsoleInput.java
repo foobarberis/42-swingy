@@ -8,12 +8,13 @@ import java.util.concurrent.TimeUnit;
 
 public class ConsoleInput {
     private static final String EOF = "__EOF__";
+    private static final String QUIT_ATTEMPT = "__QUIT_ATTEMPT__";
 
     private final LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private final Thread thread;
-    private final Object quitLockMonitor = new Object();
     private volatile boolean closed;
     private volatile boolean quitLocked;
+    private volatile boolean quitAttempted;
 
     public ConsoleInput() {
         thread = new Thread(this::runReader, "console-input-thread");
@@ -31,17 +32,7 @@ public class ConsoleInput {
                     continue;
                 }
                 if (quitLocked) {
-                    System.out.println("\nYou cannot quit now.");
-                    synchronized (quitLockMonitor) {
-                        while (quitLocked) {
-                            try {
-                                quitLockMonitor.wait();
-                            } catch (InterruptedException ie) {
-                                Thread.currentThread().interrupt();
-                                return;
-                            }
-                        }
-                    }
+                    queue.offer(QUIT_ATTEMPT);
                     continue;
                 }
                 closed = true;
@@ -60,6 +51,10 @@ public class ConsoleInput {
             try {
                 String s = queue.take();
                 if (EOF.equals(s)) return null;
+                if (QUIT_ATTEMPT.equals(s)) {
+                    quitAttempted = true;
+                    return null;
+                }
                 return s;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -73,6 +68,10 @@ public class ConsoleInput {
             String s = queue.poll(timeoutMs, TimeUnit.MILLISECONDS);
             if (s == null) return null;
             if (EOF.equals(s)) return null;
+            if (QUIT_ATTEMPT.equals(s)) {
+                quitAttempted = true;
+                return null;
+            }
             return s;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -86,11 +85,12 @@ public class ConsoleInput {
 
     public void setQuitLocked(boolean quitLocked) {
         this.quitLocked = quitLocked;
-        if (!quitLocked) {
-            synchronized (quitLockMonitor) {
-                quitLockMonitor.notifyAll();
-            }
-        }
+    }
+
+    public boolean consumeQuitAttempt() {
+        boolean out = quitAttempted;
+        quitAttempted = false;
+        return out;
     }
 
     public boolean isClosed() {

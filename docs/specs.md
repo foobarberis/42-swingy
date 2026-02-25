@@ -222,8 +222,9 @@ Launch wiring:
 
 Exit handling:
 - On CLI EOF (Ctrl-D), the console input layer prints `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
-- During combat, quit attempts are rejected and print `You cannot quit now.` in both CLI and GUI.
-- On program close (EOF in CLI, window close in GUI), if a hero is currently in a mission and combat is not active, the controller triggers **mid-mission save** of hero state (maze not persisted) per GDD.
+- During combat and during the encounter prompt, quit attempts are rejected and print `You cannot quit now.` in both CLI and GUI.
+  - Timed combat inputs are not paused by repeated quit attempts; those attempts resolve the current timed window as Idle/QTE failure.
+- On program close (EOF in CLI, window close in GUI), if a hero is currently in a mission and neither combat nor encounter prompt is active, the controller triggers **mid-mission save** of hero state (maze not persisted) per GDD.
 
 ---
 
@@ -370,6 +371,10 @@ Prompt (untimed):
   - `You have encountered <EnemyName>, do you want to fight [Y/n]?`
 
 Input handling:
+- The entire encounter prompt is quit-locked (`view.setQuitLocked(true)` on entry, reset in `finally`).
+- `null` input (EOF/window-close while locked):
+  - print exact: `You cannot quit now.`
+  - re-prompt
 - `y` or empty input → fight
 - `n` → attempt run
 - otherwise:
@@ -423,10 +428,10 @@ Trigger:
 - CLI: EOF (Ctrl-D)
 - GUI: window close
 
-Combat lock:
-- If combat is active, quit attempts are rejected and print `You cannot quit now.`
-- No save/exit occurs during combat.
-- After combat ends, a new quit attempt is required.
+Quit lock:
+- If combat or encounter prompt is active, quit attempts are rejected and print `You cannot quit now.`
+- No save/exit occurs while quit-locked.
+- After the lock is released, a new quit attempt is required.
 
 Sequence (when not in combat):
 1. CLI only: print `EOF received (Ctrl-D). Your progress has been saved. Goodbye!` on EOF.
@@ -482,6 +487,8 @@ package "com.swingy.view" {
     + readLine(): String
     + readLine(timeoutMillis: long): String
     + clearPendingInput(): void
+    + setQuitLocked(locked: boolean): void
+    + consumeQuitAttempt(): boolean
     + isClosed(): boolean
     + close(): void
   }
@@ -770,10 +777,17 @@ Classes:
 
 Thread lifecycle:
 1. `ConsoleView.start()` creates `ConsoleInput` and starts reader thread.
-2. Reader thread:
-   - loops `readLine()`; if null (EOF), sets a `closed` flag and enqueues a sentinel (or just marks closed).
-3. Controller checks `view.isClosed()` or `readLine()` returns `null` to exit.
-4. On exit: `ConsoleInput.shutdown()` interrupts thread and closes reader.
+2. Reader thread loops `readLine()` and emits input events through the queue:
+   - normal line → enqueue line
+   - EOF while quit-locked → enqueue a quit-attempt event (not closed)
+   - EOF while not locked → set `closed` and enqueue EOF sentinel
+3. Controller owns the decision on `null` reads:
+   - if `view.consumeQuitAttempt()` is true:
+     - untimed locked prompts (encounter/equip): print `You cannot quit now.` and continue prompt
+     - timed combat action input: print `You cannot quit now.` and resolve as Idle (no retry loop)
+     - timed QTE input: print `You cannot quit now.` and resolve as QTE failure (no retry loop)
+   - otherwise: treat as real EOF/close and exit/save according to flow
+4. No busy-wait/sleep is used in EOF handling.
 
 Timed combat usage (GDD exact):
 - Before each timed prompt (combat action or QTE), controller calls:
@@ -781,7 +795,9 @@ Timed combat usage (GDD exact):
 - Then prints telegraph + prompt.
 - Then reads:
   - `line = view.readLine(3000)`
-- If `line == null` (timeout) → Idle or QTE failure.
+- If `line == null`:
+  - timeout → Idle or QTE failure
+  - quit-attempt event (`view.consumeQuitAttempt()==true`) → print `You cannot quit now.` and resolve as Idle/QTE failure (no retry loop)
 
 ### 5.2 GUI timed input design
 
@@ -1061,6 +1077,7 @@ Mechanics:
 3. Start 3s timer.
 4. Player must type the exact string and press ENTER.
 5. Timeout or mismatch → failure.
+   - A blocked quit-attempt event during the timed QTE window also resolves as failure.
 
 QTE outcomes:
 - Attack vs Attack:
@@ -1085,7 +1102,7 @@ QTE outcomes:
 - Removal: after the next turn is resolved, remove the debuff.
 
 ### 8.9 Idle semantics
-Idle occurs on timeout/invalid/unknown input.
+Idle occurs on timeout/invalid/unknown input, and on blocked quit-attempt events during timed combat input.
 - vs Enemy Attack: player takes `D(1.0)` from enemy
 - vs Enemy Sunder: player takes `D(1.0)` from enemy
 - vs Enemy Defend: enemy heals `healAmount` (same as Defend-vs-Defend heal)

@@ -84,6 +84,11 @@ public class ConsoleView implements View {
     }
 
     @Override
+    public boolean consumeQuitAttempt() {
+        return input.consumeQuitAttempt();
+    }
+
+    @Override
     public boolean isClosed() {
         return input.isClosed();
     }

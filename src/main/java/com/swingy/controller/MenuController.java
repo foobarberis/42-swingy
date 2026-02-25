@@ -21,7 +21,14 @@ public class MenuController {
     public MenuResult handle(View view) {
         listHeroes(view);
         String line = view.readLine();
-        if (line == null || view.isClosed()) {
+        if (line == null) {
+            if (view.consumeQuitAttempt()) {
+                view.println("You cannot quit now.");
+                return MenuResult.none();
+            }
+            return MenuResult.exit();
+        }
+        if (view.isClosed()) {
             return MenuResult.exit();
         }
         String[] parts = line.trim().split("\\s+");

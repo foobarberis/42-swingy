@@ -111,7 +111,9 @@ Exiting:
 - CLI: Ctrl-D (EOF) exits and prints: `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
 - GUI: closing the window exits.
 - During combat, quit attempts are blocked in both modes and print: `You cannot quit now.`
-- During the encounter prompt (fight/run), an EOF / window close is treated as an immediate loss (hero is removed).
+  - For timed combat input, a blocked quit attempt still resolves the current input window (action becomes Idle; QTE fails).
+- During the encounter prompt (fight/run), quit attempts are blocked in both modes and print: `You cannot quit now.`
+  - Encounter prompt remains active and requires a valid `y/n` answer.
 - Exiting mid-mission (outside combat) saves only the hero state (stats/xp/gear/current HP). On next load, a new maze is generated (see Persistence).
 
 ### 3.3 Combat
@@ -413,7 +415,8 @@ Enemy movement cannot start encounters.
 
 Prompt:
 - `"You have encountered <EnemyName>, do you want to fight [Y/n]?"`
-- This prompt is **untimed**.
+- This prompt is **untimed** and quit-locked.
+- During this prompt, EOF/window-close is blocked: print `"You cannot quit now."` and re-prompt.
 - Accepted inputs:
   - `y` or empty input ⇒ fight
   - `n` ⇒ attempt to run
@@ -434,6 +437,7 @@ Combat is instanced: only the hero and current enemy are updated until the fight
 - The timer starts **after** the enemy telegraph and the player prompt are printed.
 - On timeout: player action becomes **Idle**.
 - Invalid input consumes the turn (treated as **Idle**).
+- Blocked quit attempt (Ctrl-D/window-close while combat is quit-locked) also consumes the timed action window as **Idle**.
 
 QTE timing:
 - QTE uses its own fresh **3-second** input window.
@@ -507,6 +511,7 @@ QTE triggers when both sides choose the same action.
 - Print 3 random letters (e.g. `ayn`).
 - The player must type them and press ENTER within the combat deadline.
 - Timeout/incorrect input counts as QTE failure.
+- Blocked quit attempt during QTE input also counts as QTE failure.
 
 Enemy telegraphing:
 - The enemy’s next action is announced before the player chooses.

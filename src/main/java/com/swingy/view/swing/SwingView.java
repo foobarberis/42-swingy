@@ -25,10 +25,12 @@ import com.swingy.view.View;
 
 public class SwingView implements View {
     private static final String EOF = "__EOF__";
+    private static final String QUIT_ATTEMPT = "__QUIT_ATTEMPT__";
 
     private final LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private volatile boolean closed;
     private volatile boolean quitLocked;
+    private volatile boolean quitAttempted;
 
     private JFrame frame;
     private JTextPane logArea;
@@ -69,7 +71,7 @@ public class SwingView implements View {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
                 if (quitLocked) {
-                    println("You cannot quit now.");
+                    queue.offer(QUIT_ATTEMPT);
                     return;
                 }
                 closeNow();
@@ -154,7 +156,12 @@ public class SwingView implements View {
         SwingUtilities.invokeLater(() -> input.requestFocusInWindow());
         try {
             String value = queue.take();
-            return EOF.equals(value) ? null : value;
+            if (EOF.equals(value)) return null;
+            if (QUIT_ATTEMPT.equals(value)) {
+                quitAttempted = true;
+                return null;
+            }
+            return value;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -167,7 +174,12 @@ public class SwingView implements View {
         try {
             String value = queue.poll(timeoutMillis, TimeUnit.MILLISECONDS);
             if (value == null) return null;
-            return EOF.equals(value) ? null : value;
+            if (EOF.equals(value)) return null;
+            if (QUIT_ATTEMPT.equals(value)) {
+                quitAttempted = true;
+                return null;
+            }
+            return value;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -182,6 +194,13 @@ public class SwingView implements View {
     @Override
     public void setQuitLocked(boolean locked) {
         quitLocked = locked;
+    }
+
+    @Override
+    public boolean consumeQuitAttempt() {
+        boolean out = quitAttempted;
+        quitAttempted = false;
+        return out;
     }
 
     @Override

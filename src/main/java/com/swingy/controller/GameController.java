@@ -52,7 +52,15 @@ public class GameController {
             view.renderStatus(hero.statusLine());
             view.renderMap(fogOfWar.viewport(maze, heroPos));
             String cmd = view.readLine();
-            if (cmd == null || view.isClosed()) {
+            if (cmd == null) {
+                if (view.consumeQuitAttempt()) {
+                    view.println("You cannot quit now.");
+                    continue;
+                }
+                saveSafely(hero);
+                return MissionResult.EXIT_APP;
+            }
+            if (view.isClosed()) {
                 saveSafely(hero);
                 return MissionResult.EXIT_APP;
             }
@@ -127,21 +135,32 @@ public class GameController {
     }
 
     private EncounterResult encounter(View view, Hero hero, EnemyInstance enemy) {
-        while (true) {
-            view.println("You have encountered " + enemy.enemy().getName() + ", do you want to fight [Y/n]?");
-            String in = view.readLine();
-            if (in == null) return EncounterResult.HERO_DIED;
-            String a = in.trim().toLowerCase();
-            if (a.isEmpty() || a.equals("y")) {
-                return combatController.fight(view, hero, enemy.enemy()) ? EncounterResult.ENEMY_DEFEATED : EncounterResult.HERO_DIED;
-            }
-            if (a.equals("n")) {
-                if (rng.chance(0.5)) {
-                    return EncounterResult.ESCAPED;
+        view.setQuitLocked(true);
+        try {
+            while (true) {
+                view.println("You have encountered " + enemy.enemy().getName() + ", do you want to fight [Y/n]?");
+                String in = view.readLine();
+                if (in == null) {
+                    if (view.consumeQuitAttempt()) {
+                        view.println("You cannot quit now.");
+                        continue;
+                    }
+                    return EncounterResult.HERO_DIED;
                 }
-                return combatController.fight(view, hero, enemy.enemy()) ? EncounterResult.ENEMY_DEFEATED : EncounterResult.HERO_DIED;
+                String a = in.trim().toLowerCase();
+                if (a.isEmpty() || a.equals("y")) {
+                    return combatController.fight(view, hero, enemy.enemy()) ? EncounterResult.ENEMY_DEFEATED : EncounterResult.HERO_DIED;
+                }
+                if (a.equals("n")) {
+                    if (rng.chance(0.5)) {
+                        return EncounterResult.ESCAPED;
+                    }
+                    return combatController.fight(view, hero, enemy.enemy()) ? EncounterResult.ENEMY_DEFEATED : EncounterResult.HERO_DIED;
+                }
+                view.println("Please answer with y or n.");
             }
-            view.println("Please answer with y or n.");
+        } finally {
+            view.setQuitLocked(false);
         }
     }
 

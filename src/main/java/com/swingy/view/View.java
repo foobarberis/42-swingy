@@ -9,6 +9,7 @@ public interface View {
     String readLine(long timeoutMillis);
     void clearPendingInput();
     void setQuitLocked(boolean locked);
+    boolean consumeQuitAttempt();
     boolean isClosed();
     void close();
 }

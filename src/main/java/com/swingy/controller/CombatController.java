@@ -46,12 +46,17 @@ public class CombatController {
             };
             view.println(enemy.getName() + " uses " + enemyAction.name().toLowerCase() + ".", color);
 
-            view.clearPendingInput();
-            String in = view.readLine(COMBAT_TIMEOUT_MS);
             CombatAction playerAction;
-            if (in == null) {
-                playerAction = CombatAction.IDLE;
-            } else {
+            while (true) {
+                view.clearPendingInput();
+                String in = view.readLine(COMBAT_TIMEOUT_MS);
+                if (in == null) {
+                    if (view.consumeQuitAttempt()) {
+                        view.println("You cannot quit now.");
+                    }
+                    playerAction = CombatAction.IDLE;
+                    break;
+                }
                 CombatAction parsed = CombatAction.fromInput(in.trim());
                 if (parsed == null) {
                     view.println("Unknown command. Available commands: attack (a), defend (d), sunder (s)");
@@ -59,15 +64,26 @@ public class CombatController {
                 } else {
                     playerAction = parsed;
                 }
+                break;
             }
 
             Boolean qteSuccess = null;
             if (playerAction != CombatAction.IDLE && playerAction == enemyAction) {
                 QteChallenge qte = QteChallenge.random(rng);
                 view.println("QTE: " + qte.letters());
-                view.clearPendingInput();
-                String qteInput = view.readLine(COMBAT_TIMEOUT_MS);
-                qteSuccess = qte.letters().equals(qteInput);
+                while (true) {
+                    view.clearPendingInput();
+                    String qteInput = view.readLine(COMBAT_TIMEOUT_MS);
+                    if (qteInput == null) {
+                        if (view.consumeQuitAttempt()) {
+                            view.println("You cannot quit now.");
+                        }
+                        qteSuccess = false;
+                        break;
+                    }
+                    qteSuccess = qte.letters().equals(qteInput);
+                    break;
+                }
             }
 
             CombatOutcome out = resolver.resolve(hero, enemy, enemyAction, playerAction, qteSuccess);
@@ -127,7 +143,13 @@ public class CombatController {
         while (true) {
             view.println(prompt);
             String in = view.readLine();
-            if (in == null) return;
+            if (in == null) {
+                if (view.consumeQuitAttempt()) {
+                    view.println("You cannot quit now.");
+                    continue;
+                }
+                return;
+            }
             String a = in.trim().toLowerCase();
             if (a.isEmpty() || a.equals("y")) {
                 if (artifact instanceof Weapon) hero.setWeaponMod(artifact.mod());
