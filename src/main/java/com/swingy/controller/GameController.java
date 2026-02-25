@@ -33,7 +33,7 @@ public class GameController {
     }
 
     public MissionResult runMission(View view, Hero hero) {
-        int mapSizeRaw = (hero.getLevel() - 1) * 5 + 10 - (hero.getLevel() % 2);
+        int mapSizeRaw = hero.getLevel() * 5 + 10 - (hero.getLevel() % 2);
         int size = Math.min(mapSizeRaw, 55);
 
         Maze maze = mazeGenerator.generate(size);

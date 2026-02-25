@@ -91,7 +91,7 @@ public class CombatController {
 
         boolean shouldDrop = enemy.isUnique() || rng.chance(0.35);
         if (shouldDrop) {
-            Artifact artifact = randomArtifact(enemy.getLevel() - 1);
+            Artifact artifact = randomArtifact(enemy.getLevel());
             promptEquip(view, hero, artifact);
         }
 

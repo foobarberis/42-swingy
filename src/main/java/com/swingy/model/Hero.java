@@ -15,7 +15,7 @@ public class Hero {
     @NotNull
     private HeroClass heroClass;
 
-    @Min(1)
+    @Min(0)
     private int level;
 
     @Min(0)
@@ -50,14 +50,14 @@ public class Hero {
     }
 
     public static Hero createNew(String name, HeroClass heroClass) {
-        Hero hero = new Hero(name, heroClass, 1, 0, heroClass.baseHp(), 0, 0, 0);
+        Hero hero = new Hero(name, heroClass, 0, 0, heroClass.baseHp(), 0, 0, 0);
         hero.currentHp = hero.effectiveMaxHp();
         return hero;
     }
 
-    public int baseAtk() { return heroClass.baseAtk() + (level - 1) * 5; }
-    public int baseDef() { return heroClass.baseDef() + (level - 1) * 5; }
-    public int baseMaxHp() { return heroClass.baseHp() + (level - 1) * 10; }
+    public int baseAtk() { return heroClass.baseAtk() + level * 5; }
+    public int baseDef() { return heroClass.baseDef() + level * 5; }
+    public int baseMaxHp() { return heroClass.baseHp() + level * 10; }
 
     public int effectiveAtk() { return baseAtk() + 3 * effectiveMod(weaponMod); }
     public int effectiveDef() { return baseDef() + 3 * effectiveMod(armorMod); }
