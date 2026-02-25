@@ -32,14 +32,19 @@ Walkability (player):
 - The player cannot move onto: wall `#` or outside maze bounds.
 
 Invalid movement:
-- Attempting to move into a wall/out of bounds consumes a turn.
+- Attempting to move into a wall/out of bounds does **not** consume a turn.
 - Print: `"You cannot go there."`
-- Enemies still perform their post-move movement phase.
+- Enemy movement does not run.
 
 **Player movement turn order**
 1. Player attempts to move 1 tile (N/E/S/W).
-2. If the destination is an enemy tile, an encounter starts immediately.
-3. Otherwise, enemies resolve movement **one at a time**:
+2. If the move is invalid (wall/out of bounds): print `"You cannot go there."` and end input processing without advancing the world.
+3. If the destination is an enemy tile, an encounter starts immediately.
+   - If the hero dies: hero is removed and the run returns to menu.
+   - If the enemy is defeated: remove that enemy from the maze.
+   - If the hero escapes: hero returns to the previous tile (`turnStart`).
+   - Encounter resolution **ends the turn**; enemy movement does not run this tick.
+4. If the destination is not an enemy tile, enemies resolve movement **one at a time**:
    - Iterate the current enemy list in its stored order.
    - For each enemy:
      1. Roll a move chance. On success (**25%**), attempt to move.
@@ -47,15 +52,14 @@ Invalid movement:
         - Enemies cannot move through walls.
         - An enemy cannot move onto a tile occupied by:
           - another enemy
+          - the player
           - an exit
           - the potion
-        - An enemy **can** move onto the player tile.
         - An enemy **can** move onto the tile the player just left.
         - The hero-start tile is just a floor tile; enemies can move onto it.
      3. If there is at least one valid tile, pick one uniformly at random and move.
         - If there are **no** valid neighboring tiles, the enemy stays in place.
         - If two enemies would move into the same tile, earlier enemies in the iteration order move first; later enemies see the tile as occupied and therefore cannot move there.
-   - If an enemy moves onto the player, mark an encounter as pending, but **continue moving the remaining enemies**. After all enemy moves are processed, start the encounter.
 
 There is no dedicated map-inspection command; the fog of war viewport is rendered automatically before each in-mission input read.
 
@@ -102,16 +106,13 @@ Input prompt:
 - Map: the fog of war viewport is rendered automatically before each in-mission input read (CLI prints ASCII; GUI draws tiles).
   - If the hero steps onto the potion tile, print the drink prompt (see Health).
 
-Minimalism decisions:
-- No `help` command (unknown-command output lists available commands).
-- No `info` command. Stats/equipment are displayed in the prompt/status line every turn.
-- No in-game `quit` command.
 
 Exiting:
 - CLI: Ctrl-D (EOF) exits and prints: `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
 - GUI: closing the window exits.
 - During combat, quit attempts are blocked in both modes and print: `You cannot quit now.`
-- Exiting mid-mission saves only the hero state (stats/xp/gear/current HP). On next load, a new maze is generated (see Persistence).
+- During the encounter prompt (fight/run), an EOF / window close is treated as an immediate loss (hero is removed).
+- Exiting mid-mission (outside combat) saves only the hero state (stats/xp/gear/current HP). On next load, a new maze is generated (see Persistence).
 
 ### 3.3 Combat
 Accepted commands:
@@ -141,7 +142,7 @@ Level-up increases base stats:
 ### 4.2 Classes
 All heroes start with no equipment.
 
-Level 1 baselines:
+Level 0 baselines (newly created heroes start at level 0):
 - Warrior: HP 125 / ATK 10 / DEF 20
 - Rogue:   HP 100 / ATK 15 / DEF 15
 - Mage:    HP  75 / ATK 20 / DEF 10
@@ -157,8 +158,8 @@ XP_total(level) = level * 1000 + (level - 1)^2 * 450
 - No level cap.
 
 XP gain (simple, self-tuning):
-- Let `L` be the hero level.
-- Compute the XP gap to next level:
+- Let `L` be the hero level (starting at 0).
+- Compute the XP gap to the next level:
   ```text
   xpToNext = XP_total(L + 1) - XP_total(L)
   ```
@@ -171,6 +172,7 @@ XP gain (simple, self-tuning):
 Notes:
 - This keeps leveling pace roughly stable as level increases.
 - Uniques (L+2) are harder fights but do not need special XP rules under this model.
+- Level-up heal: when gaining one or more levels, the hero immediately heals **+10 current HP per level gained**, capped at effective max HP.
 
 ---
 
@@ -178,9 +180,9 @@ Notes:
 ### 6.1 Maze Size
 The maze is a square grid.
 
-Raw size (subject formula):
+Raw size formula:
 ```text
-MapSizeRaw = (L - 1) * 5 + 10 - (L % 2)
+MapSizeRaw = L * 5 + 10 - (L % 2)
 ```
 
 Hard cap (safety):
@@ -205,13 +207,8 @@ Symbols (CLI):
 Rendering rules (overlay entities):
 - The maze terrain is `#` (wall), `.` (floor), `X` (exit).
 - Potions and enemies are **overlay entities** rendered on top of floor tiles (they never replace walls).
-- Overlay precedence in CLI viewport rendering:
-  - Enemy > potion > floor
-  - Player > potion > floor
-  - (Player and enemy cannot both be shown in exploration, because an encounter starts immediately when stepping onto an enemy tile.)
-- Overlay precedence in GUI world rendering:
-  - Player > enemy > potion > floor
-  - (Player may share a tile with an enemy at encounter start; the player sprite is drawn on top.)
+Overlay precedence (both CLI and GUI viewport rendering):
+- Player `@` > enemy `M`/`U` > potion `!` > terrain (`.`/`#`/`X`).
 
 Fog of war is mandatory: viewport-based rendering:
 - The logical map view is a fixed-size **11x11** window centered on the hero.
@@ -237,7 +234,7 @@ Example viewport output (11x11 window):
 Map size:
 - Given hero level `L`, compute:
   ```text
-  MapSizeRaw = (L - 1) * 5 + 10 - (L % 2)
+  MapSizeRaw = L * 5 + 10 - (L % 2)
   MapSize = min(MapSizeRaw, 55)
   ```
 - Maze size is `MapSize × MapSize`.
@@ -257,7 +254,7 @@ Recursive Backtracking (DFS) algorithm:
    - `carveX = oddCenter(MapSize)`
    - `carveY = oddCenter(MapSize)`
    - `carveStart = (carveX, carveY)`
-   - This is guaranteed in-bounds because `MapSize` is odd (from the map-size formula) and `>= 9`.
+   - This is in-bounds for the generated map sizes.
 3. Mark `carveStart` as floor.
 4. Maintain a stack of cells. Push `carveStart`.
 5. While stack not empty:
@@ -388,18 +385,12 @@ Enemy level:
 - **Regular mob:** `enemyLevel = heroLevel` (`L`).
 - **Unique:** `enemyLevel = heroLevel + 2` (`L+2`).
 
-Reference-stats model (Rogue baseline):
-- Compute base stats for a reference Rogue at level `E = enemyLevel`:
+Stats:
+- For enemy level `E = enemyLevel`:
   ```text
-  rogueBaseHp(E)  = 100 + (E - 1) * 10
-  rogueBaseAtk(E) =  15 + (E - 1) * 5
-  rogueBaseDef(E) =  15 + (E - 1) * 5
-  ```
-- Enemy stats are:
-  ```text
-  hp  = rogueBaseHp(E)
-  atk = rogueBaseAtk(E)
-  def = rogueBaseDef(E)
+  hp  = 100 + E * 10
+  atk =  15 + E * 5
+  def =  15 + E * 5
   ```
 - Enemies spawn at full HP.
 
@@ -416,8 +407,9 @@ Each maze has a chance to contain **at most one** unique.
 
 ### 7.4 Encounters
 Encounter starts when:
-- Hero steps onto an enemy tile, OR
-- An enemy moves onto the hero tile during the post-move enemy phase.
+- Hero steps onto an enemy tile.
+
+Enemy movement cannot start encounters.
 
 Prompt:
 - `"You have encountered <EnemyName>, do you want to fight [Y/n]?"`
@@ -559,7 +551,7 @@ Drop rates (defaults):
 
 Dropped artifact modifier:
 ```text
-mod = enemyLevel - 1
+mod = enemyLevel
 ```
 
 Item naming convention (derived from hero class and slot):
@@ -599,7 +591,7 @@ Equip timing:
 
 Prompt:
 - `"You have found <BaseName> +<mod> (+<bonus> <stat>), do you want to equip it [Y/n]?"`
-  - Example: `"You have found Sword +7 (+21 ATK), do you want to equip it [Y/n]?"`
+  - Example: `"You have found Sword +1 (+6 ATK), do you want to equip it [Y/n]?"`
 - Accepted inputs:
   - `y` or empty input ⇒ equip
   - `n` ⇒ discard
@@ -626,7 +618,7 @@ Name constraints (to avoid CSV escaping):
 CSV columns (per line):
 1. `name`
 2. `class` (`WARRIOR|ROGUE|MAGE`)
-3. `level` (int)
+3. `level` (int; newly created heroes start at 0)
 4. `xp` (int)
 5. `currentHp` (int)
 6. `weaponMod` (int)
@@ -638,12 +630,12 @@ Example line:
 Alice,WARRIOR,3,1520,128,4,2,1
 ```
 
-Save rules (explicit):
-- The game is saved when:
-  1. The player completes a mission (reaches an exit), or
-  2. The player dies, or
-  3. The player exits the program mid-mission (Ctrl-D / window close).
-- Mid-mission exit saves only the **hero state** (stats/xp/gear/current HP). On next load, a **new maze** is generated.
+Persistence update rules (explicit):
+- On mission win (reaching an exit): save the hero.
+- On mission loss (hero HP reaches 0): delete the hero from persistence.
+- On mid-mission exit (Ctrl-D / window close, outside combat): save the hero.
+
+Mid-mission exit saves only the **hero state** (stats/xp/gear/current HP). On next load, a **new maze** is generated.
 
 Hero deletion on death:
 - Death removes the hero from persistence immediately by deleting their CSV line (rewrite file without that hero).
@@ -673,14 +665,15 @@ Stat definitions (for the prompt):
 - `baseAtk/baseDef/baseMaxHp`: hero class baseline + level-up increments only (no artifacts).
 - `effectiveAtk/effectiveDef/effectiveMaxHp`: base stat plus equipped artifact bonuses.
 - `currentHp` is capped at `effectiveMaxHp`.
+- `xpNextThreshold`: total XP required to reach the next level (`XP_total(level + 1)`).
 
 Prompt/status line format:
 ```text
-[Lv. <level> <classAbbrev>. | <currentHp>/<baseMaxHp> HP <effectiveAtk>/<baseAtk> ATK <effectiveDef>/<baseDef> DEF | <xp>/<xpToNext> XP]
+[Lv. <level> <classAbbrev> | <currentHp>/<baseMaxHp> HP <effectiveAtk>/<baseAtk> ATK <effectiveDef>/<baseDef> DEF | <xp>/<xpNextThreshold> XP]
 ```
 Example:
 ```text
-[Lv. 1 War. | 130/125 HP 13/10 ATK 23/20 DEF | 0/1000 XP]
+[Lv. 0 War. | 125/125 HP 10/10 ATK 20/20 DEF | 0/1000 XP]
 ```
 
 ### 12.1 CLI
