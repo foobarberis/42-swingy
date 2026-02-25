@@ -573,12 +573,19 @@ Displayed format:
 ### 10.2 Diminishing returns
 Artifacts are labeled `+mod`.
 
-Convert display modifier to power:
+Slot state:
+- Empty slot is represented as `mod = -1` (not displayed as an item).
+
+Convert artifact modifier to power:
 ```text
-effectiveMod(mod) = floor(k * ln(1 + mod))
+effectiveMod(mod) =
+  0                           if mod < 0
+  1                           if mod == 0
+  floor(k * ln(1 + mod))      if mod >= 1
 ```
 - `ln` is natural log; Java: `Math.log(1 + mod)`.
 - Tune `k`. Calibration option: `effectiveMod(10) = 10` ⇒ `k ≈ 4.17`.
+- Rationale: `+0` artifacts still give a small, non-zero bonus, while an empty slot gives no bonus.
 
 Step constants (chosen):
 - `atkStep = 3`
@@ -629,13 +636,17 @@ CSV columns (per line):
 3. `level` (int; newly created heroes start at 1)
 4. `xp` (int)
 5. `currentHp` (int)
-6. `weaponMod` (int)
-7. `armorMod` (int)
-8. `helmMod` (int)
+6. `weaponMod` (int; `-1` means empty slot, `0+` means equipped weapon tier)
+7. `armorMod` (int; `-1` means empty slot, `0+` means equipped armor tier)
+8. `helmMod` (int; `-1` means empty slot, `0+` means equipped helm tier)
 
-Example line:
+Example lines:
 ```text
+# geared hero
 Alice,WARRIOR,3,1520,128,4,2,1
+
+# newly created hero (no equipment)
+Bob,ROGUE,1,0,100,-1,-1,-1
 ```
 
 Persistence update rules (explicit):
@@ -677,7 +688,7 @@ Stat definitions (for the prompt):
 
 Prompt/status line format:
 ```text
-[Lv. <level> <classAbbrev> | <currentHp>/<baseMaxHp> HP <effectiveAtk>/<baseAtk> ATK <effectiveDef>/<baseDef> DEF | <xp>/<xpNextThreshold> XP]
+[Lv. <level> <classAbbrev> | <currentHp>/<effectiveMaxHp> HP <effectiveAtk>/<baseAtk> ATK <effectiveDef>/<baseDef> DEF | <xp>/<xpNextThreshold> XP]
 ```
 Example:
 ```text

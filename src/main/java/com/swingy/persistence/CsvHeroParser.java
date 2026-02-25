@@ -16,9 +16,9 @@ public class CsvHeroParser {
         int level = parseNonNegative(p[2]);
         int xp = parseNonNegative(p[3]);
         int hp = parseNonNegative(p[4]);
-        int weapon = parseNonNegative(p[5]);
-        int armor = parseNonNegative(p[6]);
-        int helm = parseNonNegative(p[7]);
+        int weapon = parseAtLeast(p[5], -1);
+        int armor = parseAtLeast(p[6], -1);
+        int helm = parseAtLeast(p[7], -1);
         if (level < 1) throw new IllegalArgumentException("Bad level");
 
         Hero hero = new Hero(p[0], cls, level, xp, hp, weapon, armor, helm);
@@ -29,9 +29,13 @@ public class CsvHeroParser {
     }
 
     private int parseNonNegative(String s) {
+        return parseAtLeast(s, 0);
+    }
+
+    private int parseAtLeast(String s, int min) {
         try {
             int value = Integer.parseInt(s);
-            if (value < 0) throw new IllegalArgumentException("Negative");
+            if (value < min) throw new IllegalArgumentException("Too small");
             return value;
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("NaN");

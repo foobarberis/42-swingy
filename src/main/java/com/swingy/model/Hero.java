@@ -1,10 +1,10 @@
 package com.swingy.model;
 
-import com.swingy.model.combat.DebuffState;
-
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
+
+import com.swingy.model.combat.DebuffState;
 
 public class Hero {
     public static final double EFFECTIVE_MOD_K = 4.17;
@@ -24,13 +24,14 @@ public class Hero {
     @Min(0)
     private int currentHp;
 
-    @Min(0)
+    // -1 means empty slot (no item equipped). 0+ are artifact tiers.
+    @Min(-1)
     private int weaponMod;
 
-    @Min(0)
+    @Min(-1)
     private int armorMod;
 
-    @Min(0)
+    @Min(-1)
     private int helmMod;
 
     private final DebuffState debuffState = new DebuffState();
@@ -50,7 +51,8 @@ public class Hero {
     }
 
     public static Hero createNew(String name, HeroClass heroClass) {
-        Hero hero = new Hero(name, heroClass, 1, 0, heroClass.baseHp(), 0, 0, 0);
+        // Start with no equipment.
+        Hero hero = new Hero(name, heroClass, 1, 0, heroClass.baseHp(), -1, -1, -1);
         hero.currentHp = hero.effectiveMaxHp();
         return hero;
     }
@@ -64,6 +66,10 @@ public class Hero {
     public int effectiveMaxHp() { return baseMaxHp() + 5 * effectiveMod(helmMod); }
 
     public int effectiveMod(int mod) {
+        // Empty slot: no bonus.
+        if (mod < 0) return 0;
+        // +0 artifacts should still provide a small bonus.
+        if (mod == 0) return 1;
         return (int) Math.floor(EFFECTIVE_MOD_K * Math.log(1.0 + mod));
     }
 
@@ -97,7 +103,7 @@ public class Hero {
     }
 
     public String statusLine() {
-        return "[Lv. " + level + " " + heroClass.abbr() + " | " + currentHp + "/" + baseMaxHp() + " HP " +
+        return "[Lv. " + level + " " + heroClass.abbr() + " | " + currentHp + "/" + effectiveMaxHp() + " HP " +
                 effectiveAtk() + "/" + baseAtk() + " ATK " + effectiveDef() + "/" + baseDef() + " DEF | " + xp + "/" +
                 xpThreshold(level) + " XP]";
     }

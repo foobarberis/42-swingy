@@ -1134,7 +1134,12 @@ GUI:
 - `mod = enemyLevel - 1`
 
 Effective mod conversion:
-- `effectiveMod = floor(k * ln(1 + mod))`
+- Empty slot is represented as `mod = -1` (no bonus).
+- `+0` artifacts provide a small baseline bonus.
+- Conversion:
+  - `effectiveMod = 0` if `mod < 0`
+  - `effectiveMod = 1` if `mod == 0`
+  - `effectiveMod = floor(k * ln(1 + mod))` if `mod >= 1`
 - `k ≈ 4.17` (calibration: effectiveMod(10) ≈ 10)
 
 Step constants:
@@ -1185,12 +1190,13 @@ CSV columns (exactly 8):
 3. `level` (int)
 4. `xp` (int)
 5. `currentHp` (int)
-6. `weaponMod` (int)
-7. `armorMod` (int)
-8. `helmMod` (int)
+6. `weaponMod` (int; `-1` = empty slot, `0+` = equipped tier)
+7. `armorMod` (int; `-1` = empty slot, `0+` = equipped tier)
+8. `helmMod` (int; `-1` = empty slot, `0+` = equipped tier)
 
-Example:
+Examples:
 `Alice,WARRIOR,3,1520,128,4,2,1`
+`Bob,ROGUE,1,0,100,-1,-1,-1`
 
 Name constraints:
 - regex: `[A-Za-z0-9_-]{1,16}`
@@ -1207,7 +1213,7 @@ A failure includes (non-exhaustive, must be treated as failure):
 - name not matching regex
 - duplicate names
 - non-integer fields
-- negative values or invalid ranges (at minimum: level < 1, xp < 0, currentHp < 0, mods < 0)
+- negative values or invalid ranges (at minimum: level < 1, xp < 0, currentHp < 0, mods < -1)
 - currentHp > effectiveMaxHp after reconstruction (treat as invalid; or clamp during model normalization but still considered a parse/validation issue per “strict parsing”; recommended: treat as invalid)
 
 Implementation:
@@ -1218,7 +1224,7 @@ Implementation:
   - level min 1
   - xp min 0
   - currentHp min 0
-  - mods min 0
+  - mods min -1 (where -1 means empty slot)
 
 ### 10.3 Save triggers
 Save hero when:
