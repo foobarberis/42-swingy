@@ -105,7 +105,7 @@ public class GameController {
             EnemyInstance pending = null;
             for (EnemyInstance enemy : new ArrayList<>(maze.enemies())) {
                 if (!rng.chance(0.25)) continue;
-                List<Position> options = validEnemyMoves(maze, enemy, heroPos);
+                List<Position> options = validEnemyMoves(maze, enemy);
                 if (options.isEmpty()) continue;
                 Position newPos = options.get(rng.nextInt(options.size()));
                 enemy.moveTo(newPos);
@@ -172,7 +172,7 @@ public class GameController {
         }
     }
 
-    private List<Position> validEnemyMoves(Maze maze, EnemyInstance enemy, Position heroPos) {
+    private List<Position> validEnemyMoves(Maze maze, EnemyInstance enemy) {
         List<Position> out = new ArrayList<>();
         for (Position n : enemy.pos().neighbors4()) {
             if (!maze.isInside(n)) continue;
@@ -185,7 +185,7 @@ public class GameController {
                     break;
                 }
             }
-            if (occupied && !n.equals(heroPos)) continue;
+            if (occupied) continue;
             out.add(n);
         }
         return out;
