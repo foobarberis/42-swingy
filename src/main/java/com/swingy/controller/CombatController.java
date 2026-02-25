@@ -101,8 +101,8 @@ public class CombatController {
             return false;
         }
 
-        int xpToNext = hero.xpThreshold(hero.getLevel());
-        int xpGain = Math.round(xpToNext / 15f);
+        int xpByEnemyLevel = hero.xpThreshold(enemy.getLevel());
+        int xpGain = xpByEnemyLevel / 10;
         hero.addXp(xpGain);
 
         boolean shouldDrop = enemy.isUnique() || rng.chance(0.35);

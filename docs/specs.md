@@ -1374,9 +1374,9 @@ XP thresholds:
 - `XP_total(level) = level * 1000 + (level - 1)^2 * 450`
 - Heroes start at level 1, so the first level-up requires `XP_total(1) = 1000` XP.
 
-XP gain per enemy defeated (GDD default):
-- `xpToNext = XP_total(L)`
-- `xpGain = round(xpToNext / K)`, `K = 15`
+XP gain per enemy defeated (GDD):
+- Let `E` be the defeated enemy level.
+- `xpGain = XP_total(E) / 10` (integer division; truncates)
 
 Map size:
 - `(level - 1) * 5 + 10 - (level % 2)`, capped at 55

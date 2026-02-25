@@ -167,16 +167,16 @@ XP progression:
   ```
   Example: at level 1, `xpToNext = 1000`.
 
-XP gain (simple, self-tuning):
+XP gain (based on enemy level; target: ~10 kills vs same-level enemies):
+- Let `E` be the defeated enemy level.
 - Each defeated enemy grants:
   ```text
-  xpGain = round(xpToNext / K)
+  xpGain = XP_total(E) / 10
   ```
-  where `K` is the target number of kills per level (tunable constant; default `K = 15`).
+  (`/` is integer division; fractional XP is discarded.)
 
 Notes:
-- This keeps leveling pace roughly stable as level increases.
-- Uniques (L+2) are harder fights but do not need special XP rules under this model.
+- Uniques are `E = L + 2`, so they automatically grant more XP.
 - Level-up heal: when gaining one or more levels, the hero immediately heals **+10 current HP per level gained**, capped at effective max HP.
 
 ---
