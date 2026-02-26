@@ -94,12 +94,15 @@ Input prompt:
 
 ### 3.1 Starting Screen
 - `list`: list available heroes (also printed automatically on entering the starting screen).
+  - If there are no heroes (missing file or empty file): print "No heroes available."
+  - If the save file exists but is malformed/tampered with: print "Save file heroes.csv is corrupted (line <n>)."
 - `load <name>`: load an existing hero by name.
-  - If the save cannot be loaded for any reason (file missing/corrupt, invalid CSV format, unknown name, invalid class/name fields, negative numbers/out-of-range integers): print `"Could not load save."`
+  - If the save cannot be loaded for any reason (file missing/corrupt, invalid CSV format, unknown name, invalid class/name fields, negative numbers/out-of-range integers): print "Could not load save."
 - `create <class> <name>`: create a new hero.
   - `<class>` must be exactly one of: `warrior`, `rogue`, `mage` (case-sensitive).
   - `<name>` must follow the persistence name constraints: `[A-Za-z0-9_-]{1,16}` and be unique.
-  - If the name already exists: print `"A character with the name already exists, pick another name."`
+  - If the name already exists: print "A character with the name already exists, pick another name."
+  - If the save file exists but is malformed/tampered with: print "Save file heroes.csv is corrupted (line <n>)." and do not create.
 
 ### 3.2 In-Game
 - Movement: `north|south|east|west` (aliases: `n|s|e|w`)

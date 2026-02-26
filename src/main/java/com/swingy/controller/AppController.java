@@ -16,6 +16,7 @@ public class AppController {
 
     public void run() {
 		view.println("\nWelcome to Swingy! Usage: `create <class> <name>` or `load <name>`.\n");
+        menuController.enterMenu();
         while (!view.isClosed()) {
             MenuController.MenuResult menu = menuController.handle(view);
             if (menu.type() == MenuController.MenuResult.Type.EXIT) {
@@ -27,6 +28,7 @@ public class AppController {
                 if (result == MissionResult.EXIT_APP) {
                     break;
                 }
+                menuController.enterMenu();
             }
         }
         view.close();

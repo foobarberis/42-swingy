@@ -24,6 +24,9 @@ java -jar target/swingy.jar gui
 # build + run via Maven profiles
 mvn -Pcli clean package exec:exec@run-cli
 mvn -Pgui clean package exec:exec@run-gui  # enables Swing font AA (-Dswing.aatext=true -Dawt.useSystemAAFontSettings=on)
+
+# run tests (no external test framework)
+mvn -Ptests test-compile exec:java
 ```
 
 ---
@@ -1223,15 +1226,26 @@ A failure includes (non-exhaustive, must be treated as failure):
 - negative values or invalid ranges (at minimum: level < 1, xp < 0, currentHp < 0, mods < -1)
 - currentHp > effectiveMaxHp after reconstruction (treat as invalid; or clamp during model normalization but still considered a parse/validation issue per “strict parsing”; recommended: treat as invalid)
 
-Implementation:
+Implementation (current):
 - `CsvHeroParser.parse(line)` throws checked `CsvParseException`.
-- `HeroCsvRepository.loadByName` catches any exception and signals failure to controller.
-- `javax.validation` annotations should enforce:
-  - name pattern
-  - level min 1
-  - xp min 0
-  - currentHp min 0
-  - mods min -1 (where -1 means empty slot)
+- `HeroCsvRepository` enforces strict reading of the entire file:
+  - if the file exists but any line is invalid, `list()` / `loadByName()` fail with a line-aware `SaveFileCorruptedException`.
+  - corruption includes: blank lines, malformed CSV, invalid ranges, failed bean validation, duplicate hero names.
+- `load <name>` behavior:
+  - any repository failure (missing file, unknown hero name, corrupted CSV) results in the controller printing **exact**: `Could not load save.`
+- `list` / initial menu auto-list behavior:
+  - missing file or empty file ⇒ print `No heroes available.`
+  - corrupted file ⇒ print `Save file heroes.csv is corrupted (line <n>).`
+- `create <class> <name>` behavior:
+  - the roster is read to enforce name uniqueness.
+  - if the save file is corrupted, creation is aborted and the same corruption message is printed.
+
+`javax.validation` annotations enforce:
+- name pattern
+- level min 1
+- xp min 0
+- currentHp min 0
+- mods min -1 (where -1 means empty slot)
 
 ### 10.3 Save triggers
 Save hero when:
@@ -1281,6 +1295,10 @@ Combat:
 Persistence:
 - Load failure:
   - `Could not load save.`
+- No saved heroes (missing file or empty file):
+  - `No heroes available.`
+- Corrupted save file (shown on menu `list` / menu auto-list / `create` when roster must be read):
+  - `Save file heroes.csv is corrupted (line <n>).`
 
 Creation:
 - Name already exists:
@@ -1336,12 +1354,14 @@ Implement `DeterministicRandomProvider(seed)`:
 #### 12.2.1 CSV parser/serializer
 Test cases:
 - serialize then parse round-trip equality
-- reject:
+- reject (strict parsing):
   - wrong column count
   - invalid class token
   - name outside regex
-  - negative integers
-  - non-integer fields
+  - non-integer numeric fields
+  - negative values and invalid ranges (level < 1, xp < 0, currentHp < 0, mods < -1)
+  - consistency violations after reconstruction (currentHp > effectiveMaxHp, xp >= xpThreshold(level))
+  - blank lines in file
   - duplicate hero names in file
 
 #### 12.2.2 MazeGenerator
@@ -1371,11 +1391,27 @@ Test cases (pure function, no I/O):
   - applied only via Sunder-vs-Sunder QTE
   - reduces defender DEF to floor(0.7*DEF) for next turn only
 
-### 12.3 How to run tests without a framework
-- Implement `src/test/java/com/swingy/TestRunner.java` with `public static void main` and Java `assert` statements.
-- Run with:
-  - `java -ea -cp target/classes:target/test-classes com.swingy.TestRunner`
-- Alternatively run in IDE.
+### 12.3 How to run tests (no external test framework)
+Tests use plain Java `assert` statements and a single entrypoint:
+- `src/test/java/com/swingy/TestRunner.java`
+
+Run via Maven (single command):
+```bash
+mvn -q -Ptests test-compile exec:java
+```
+
+Run via `java` directly:
+```bash
+mvn -q -DskipTests test-compile
+java -ea -cp target/classes:target/test-classes com.swingy.TestRunner
+```
+
+Output conventions:
+- per test case: `[PASS] <name>` / `[FAIL] <name> -> <reason>`
+- suite summary: `[CSV] Passed <N> tests`
+
+Adding tests:
+- create a `*Tests` class with `runAll()` and call it from `TestRunner.main`.
 
 ---
 

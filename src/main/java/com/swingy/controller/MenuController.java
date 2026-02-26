@@ -13,14 +13,22 @@ import com.swingy.view.View;
 public class MenuController {
     private final HeroRepository repository;
     private final Validator validator;
+    private boolean needsAutoList = true;
 
     public MenuController(HeroRepository repository, Validator validator) {
         this.repository = repository;
         this.validator = validator;
     }
 
+    public void enterMenu() {
+        needsAutoList = true;
+    }
+
     public MenuResult handle(View view) {
-        listHeroes(view);
+        if (needsAutoList) {
+            listHeroes(view);
+            needsAutoList = false;
+        }
         String line = view.readLine();
         if (line == null) {
             if (view.consumeQuitAttempt()) {

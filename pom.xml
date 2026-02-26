@@ -120,5 +120,14 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>tests</id>
+      <properties>
+        <exec.mainClass>com.swingy.TestRunner</exec.mainClass>
+        <exec.classpathScope>test</exec.classpathScope>
+        <exec.jvmArgs>-ea</exec.jvmArgs>
+      </properties>
+    </profile>
   </profiles>
 </project>
