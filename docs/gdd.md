@@ -609,11 +609,15 @@ Prompt:
   - Example: `"You have found Sword +1 (+6 ATK), do you want to equip it [Y/n]?"`
 - Accepted inputs:
   - `y` or empty input ⇒ equip
-  - `n` ⇒ discard
+  - `n` ⇒ discard and print: `"<ItemName> has been discarded"`
+    - `<ItemName>` is the displayed item name: `<BaseName> +<mod>`
 - Invalid input ⇒ print `"Please answer with y or n."` and re-prompt.
 
 Equip rules:
-- Equipping always replaces the currently equipped item in that slot (if any). The old item is discarded.
+- Equipping always replaces the currently equipped item in that slot (if any).
+  - If an old item was equipped, it is discarded and the game prints: `"<OldItemName> has been discarded"`.
+  - If the slot was empty, no discard message is printed when equipping.
+- If the player discards the found item (answers `n`), the game prints: `"<ItemName> has been discarded"`.
 - If equipping a helm changes effective max HP, keep current HP as-is but cap it to the new effective max HP.
 
 ---

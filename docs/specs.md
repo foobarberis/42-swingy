@@ -1167,12 +1167,14 @@ Prompt format (GDD exact):
 
 Input:
 - `y` or empty → equip
-- `n` → discard
+- `n` → discard and print: `<ItemName> has been discarded`
 - invalid → `Please answer with y or n.` and re-prompt
 
 Equip rules:
 - No inventory; equipping replaces current item in slot.
-- Old item discarded.
+  - If an old item was equipped, discard it and print: `<OldItemName> has been discarded`
+  - If the slot was empty, do not print a discard message when equipping.
+- If the player discards the found item, print: `<ItemName> has been discarded`
 - Helm equip: cap current HP to new effective max HP.
 
 ---

@@ -25,14 +25,15 @@ public class Hero {
     private int currentHp;
 
     // -1 means empty slot (no item equipped). 0+ are artifact tiers.
+    // Default to -1 so a partially-constructed Hero (e.g., via no-arg ctor + setters) still means “no equipment”.
     @Min(-1)
-    private int weaponMod;
+    private int weaponMod = -1;
 
     @Min(-1)
-    private int armorMod;
+    private int armorMod = -1;
 
     @Min(-1)
-    private int helmMod;
+    private int helmMod = -1;
 
     private final DebuffState debuffState = new DebuffState();
 

@@ -140,7 +140,9 @@ public class CombatController {
             stat = "HP";
             bonus = effectiveMod * 5;
         }
-        String prompt = "You have found " + artifact.displayName(hero.getHeroClass()) + " (+" + bonus + " " + stat + "), do you want to equip it [Y/n]?";
+
+        String itemName = artifact.displayName(hero.getHeroClass());
+        String prompt = "You have found " + itemName + " (+" + bonus + " " + stat + "), do you want to equip it [Y/n]?";
         while (true) {
             view.println(prompt);
             String in = view.readLine();
@@ -153,13 +155,26 @@ public class CombatController {
             }
             String a = in.trim().toLowerCase();
             if (a.isEmpty() || a.equals("y")) {
-                if (artifact instanceof Weapon) hero.setWeaponMod(artifact.mod());
-                if (artifact instanceof Armor) hero.setArmorMod(artifact.mod());
-                if (artifact instanceof Helm) hero.setHelmMod(artifact.mod());
+                if (artifact instanceof Weapon) {
+                    int oldMod = hero.getWeaponMod();
+                    if (oldMod >= 0) view.println(new Weapon(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    hero.setWeaponMod(artifact.mod());
+                }
+                if (artifact instanceof Armor) {
+                    int oldMod = hero.getArmorMod();
+                    if (oldMod >= 0) view.println(new Armor(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    hero.setArmorMod(artifact.mod());
+                }
+                if (artifact instanceof Helm) {
+                    int oldMod = hero.getHelmMod();
+                    if (oldMod >= 0) view.println(new Helm(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    hero.setHelmMod(artifact.mod());
+                }
                 hero.capHp();
                 return;
             }
             if (a.equals("n")) {
+                view.println(itemName + " has been discarded");
                 return;
             }
             view.println("Please answer with y or n.");
