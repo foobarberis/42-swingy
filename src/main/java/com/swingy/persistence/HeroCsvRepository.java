@@ -70,11 +70,28 @@ public class HeroCsvRepository implements HeroRepository {
         List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
         List<Hero> heroes = new ArrayList<>();
         Set<String> names = new HashSet<>();
-        for (String line : lines) {
-            if (line.isBlank()) throw new IOException("Malformed CSV");
-            Hero hero = parser.parse(line);
-            if (!validator.validate(hero).isEmpty()) throw new IOException("Validation error");
-            if (!names.add(hero.getName())) throw new IOException("Duplicate names");
+
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            int lineNumber = i + 1;
+
+            if (line.isBlank()) {
+                throw new SaveFileCorruptedException(path, lineNumber, "Blank line");
+            }
+
+            final Hero hero;
+            try {
+                hero = parser.parse(line);
+            } catch (CsvParseException e) {
+                throw new SaveFileCorruptedException(path, lineNumber, e.getMessage(), e);
+            }
+
+            if (!validator.validate(hero).isEmpty()) {
+                throw new SaveFileCorruptedException(path, lineNumber, "Validation error");
+            }
+            if (!names.add(hero.getName())) {
+                throw new SaveFileCorruptedException(path, lineNumber, "Duplicate names");
+            }
             heroes.add(hero);
         }
         return heroes;

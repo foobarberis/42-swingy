@@ -7,6 +7,7 @@ import javax.validation.Validator;
 import com.swingy.model.Hero;
 import com.swingy.model.HeroClass;
 import com.swingy.persistence.HeroRepository;
+import com.swingy.persistence.SaveFileCorruptedException;
 import com.swingy.view.View;
 
 public class MenuController {
@@ -62,6 +63,9 @@ public class MenuController {
             if (!validator.validate(hero).isEmpty()) return MenuResult.none();
             repository.save(hero);
             return MenuResult.start(hero);
+        } catch (SaveFileCorruptedException e) {
+            printCorruptedSaveMessage(view, e);
+            return MenuResult.none();
         } catch (Exception ignored) {
             return MenuResult.none();
         }
@@ -89,13 +93,19 @@ public class MenuController {
                 view.println("No heroes available.");
                 return;
             }
-			view.println("Available heroes:");
+            view.println("Available heroes:");
             for (Hero h : heroes) {
                 view.println("  - " + h.getName() + " " + h.getHeroClass().name() + " Lv." + h.getLevel());
             }
+        } catch (SaveFileCorruptedException e) {
+            printCorruptedSaveMessage(view, e);
         } catch (Exception e) {
             view.println("No heroes available.");
         }
+    }
+
+    private void printCorruptedSaveMessage(View view, SaveFileCorruptedException e) {
+        view.println("Save file " + e.getPath().getFileName() + " is corrupted (line " + e.getLineNumber() + ").");
     }
 
     public record MenuResult(Type type, Hero hero) {
