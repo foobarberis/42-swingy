@@ -101,6 +101,7 @@ Input prompt:
 - `create <class> <name>`: create a new hero.
   - `<class>` must be exactly one of: `warrior`, `rogue`, `mage` (case-sensitive).
   - `<name>` must follow the persistence name constraints: `[A-Za-z0-9_-]{1,16}` and be unique.
+  - If the command syntax is invalid (wrong argument count, invalid class token, invalid name format): print "Usage: create warrior|rogue|mage <name>".
   - If the name already exists: print "A character with the name already exists, pick another name."
   - If the save file exists but is malformed/tampered with: print "Save file heroes.csv is corrupted (line <n>)." and do not create.
 

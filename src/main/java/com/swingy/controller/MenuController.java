@@ -56,11 +56,20 @@ public class MenuController {
     }
 
     private MenuResult create(View view, String[] parts) {
-        if (parts.length != 3) return MenuResult.none();
+        if (parts.length != 3) {
+            view.println("Usage: create warrior|rogue|mage <name>");
+            return MenuResult.none();
+        }
         HeroClass cls = HeroClass.fromCreateToken(parts[1]);
-        if (cls == null) return MenuResult.none();
+        if (cls == null) {
+            view.println("Usage: create warrior|rogue|mage <name>");
+            return MenuResult.none();
+        }
         String name = parts[2];
-        if (!name.matches("[A-Za-z0-9_-]{1,16}")) return MenuResult.none();
+        if (!name.matches("[A-Za-z0-9_-]{1,16}")) {
+            view.println("Usage: create warrior|rogue|mage <name>");
+            return MenuResult.none();
+        }
         try {
             List<Hero> heroes = repository.list();
             if (heroes.stream().anyMatch(h -> h.getName().equals(name))) {

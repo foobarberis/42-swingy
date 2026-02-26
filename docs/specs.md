@@ -293,8 +293,12 @@ Exit handling:
 4. `MenuController` parses:
    - `list` → view prints list → stay in MENU
    - `create <class> <name>`
+     - validate argument count (must be exactly 2 args: class + name)
+       - on failure: print `Usage: create warrior|rogue|mage <name>` and stay in MENU
      - validate class (exact case-sensitive: `warrior|rogue|mage`)
+       - on failure: print `Usage: create warrior|rogue|mage <name>` and stay in MENU
      - validate name regex `[A-Za-z0-9_-]{1,16}` and uniqueness
+       - on invalid format: print `Usage: create warrior|rogue|mage <name>` and stay in MENU
      - create new `Hero` with baseline level 1, xp 0, currentHp = effectiveMaxHp, no gear
      - save hero immediately (optional but recommended for persistence consistency)
      - return `START_MISSION(hero)`
@@ -1301,6 +1305,8 @@ Persistence:
   - `Save file heroes.csv is corrupted (line <n>).`
 
 Creation:
+- Invalid create syntax/class/name:
+  - `Usage: create warrior|rogue|mage <name>`
 - Name already exists:
   - `A character with the name already exists, pick another name.`
 
