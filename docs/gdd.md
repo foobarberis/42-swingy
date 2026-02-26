@@ -108,12 +108,13 @@ Input prompt:
 
 
 Exiting:
-- CLI: Ctrl-D (EOF) exits and prints: `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
-- GUI: closing the window exits.
-- During combat, quit attempts are blocked in both modes and print: `You cannot quit now.`
-  - For timed combat input, a blocked quit attempt still resolves the current input window (action becomes Idle; QTE fails).
-- During the encounter prompt (fight/run), quit attempts are blocked in both modes and print: `You cannot quit now.`
-  - Encounter prompt remains active and requires a valid `y/n` answer.
+- CLI:
+  - Ctrl-D (EOF): graceful exit. Save hero state and print: `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
+  - Ctrl-C: immediate abort. Print: `Ctrl-C detected, quitting now. Progress will not be saved.` (no save).
+- GUI: closing the window exits (graceful exit).
+- During combat and during the encounter prompt (fight/run):
+  - Graceful quit attempts are blocked (Ctrl-D in CLI, window-close in GUI) and print: `You cannot quit now.`
+  - Ctrl-C still aborts immediately (no save).
 - Exiting mid-mission (outside combat) saves only the hero state (stats/xp/gear/current HP). On next load, a new maze is generated (see Persistence).
 
 ### 3.3 Combat
@@ -440,7 +441,7 @@ Combat is instanced: only the hero and current enemy are updated until the fight
 - The timer starts **after** the enemy telegraph and the player prompt are printed.
 - On timeout: player action becomes **Idle**.
 - Invalid input consumes the turn (treated as **Idle**).
-- Blocked quit attempt (Ctrl-D/window-close while combat is quit-locked) also consumes the timed action window as **Idle**.
+- Blocked graceful quit attempt (Ctrl-D/window-close while combat is quit-locked) also consumes the timed action window as **Idle**.
 
 QTE timing:
 - QTE uses its own fresh **3-second** input window.
@@ -514,7 +515,7 @@ QTE triggers when both sides choose the same action.
 - Print 3 random letters (e.g. `ayn`).
 - The player must type them and press ENTER within the combat deadline.
 - Timeout/incorrect input counts as QTE failure.
-- Blocked quit attempt during QTE input also counts as QTE failure.
+- Blocked graceful quit attempt during QTE input (Ctrl-D/window-close) also counts as QTE failure.
 
 Enemy telegraphing:
 - The enemy’s next action is announced before the player chooses.

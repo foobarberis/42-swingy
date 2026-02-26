@@ -16,10 +16,12 @@ import com.swingy.util.RandomProvider;
 import com.swingy.view.View;
 import com.swingy.view.console.ConsoleView;
 import com.swingy.view.swing.SwingView;
+import sun.misc.Signal;
 
 import javax.validation.Validation;
 import javax.validation.Validator;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main {
     public static void main(String[] args) {
@@ -31,12 +33,32 @@ public class Main {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
         HeroRepository repository = new HeroCsvRepository(Path.of("heroes.csv"), new CsvHeroParser(), new CsvHeroSerializer(), validator);
         RandomProvider rng = new DefaultRandomProvider();
-        View view = "console".equals(args[0]) ? new ConsoleView() : new SwingView();
+
+        View view;
+        if ("console".equals(args[0])) {
+            installCtrlCNoSaveHandler();
+            view = new ConsoleView();
+        } else {
+            view = new SwingView();
+        }
 
         MenuController menuController = new MenuController(repository, validator);
         CombatController combatController = new CombatController(new CombatResolver(), rng);
         GameController gameController = new GameController(new MazeGenerator(rng), new EntityPlacer(rng), combatController, repository, rng);
         AppController appController = new AppController(view, menuController, gameController);
         appController.run();
+    }
+
+    private static void installCtrlCNoSaveHandler() {
+        AtomicBoolean fired = new AtomicBoolean(false);
+        try {
+            Signal.handle(new Signal("INT"), signal -> {
+                if (!fired.compareAndSet(false, true)) return;
+                System.out.println("\nCtrl-C detected, quitting now. Progress will not be saved.");
+                System.out.flush();
+                System.exit(130);
+            });
+        } catch (Throwable ignored) {
+        }
     }
 }

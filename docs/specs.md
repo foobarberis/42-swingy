@@ -221,9 +221,11 @@ Launch wiring:
 6. Create `AppController` and call `run()`.
 
 Exit handling:
-- On CLI EOF (Ctrl-D), the console input layer prints `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
-- During combat and during the encounter prompt, quit attempts are rejected and print `You cannot quit now.` in both CLI and GUI.
+- CLI Ctrl-D (EOF): the console input layer prints `EOF received (Ctrl-D). Your progress has been saved. Goodbye!` and the controller performs the normal mid-mission save/exit path.
+- CLI Ctrl-C (SIGINT): immediate abort. Print `Ctrl-C detected, quitting now. Progress will not be saved.` and exit with code `130` (no save).
+- During combat and during the encounter prompt, **graceful** quit attempts are rejected and print `You cannot quit now.` in both CLI and GUI.
   - Timed combat inputs are not paused by repeated quit attempts; those attempts resolve the current timed window as Idle/QTE failure.
+  - Ctrl-C is not a graceful quit attempt; it aborts regardless of quit-lock.
 - On program close (EOF in CLI, window close in GUI), if a hero is currently in a mission and neither combat nor encounter prompt is active, the controller triggers **mid-mission save** of hero state (maze not persisted) per GDD.
 
 ---
@@ -437,6 +439,9 @@ Sequence (when not in combat):
 1. CLI only: print `EOF received (Ctrl-D). Your progress has been saved. Goodbye!` on EOF.
 2. Save hero state to `heroes.csv` (same format), regardless of location.
 3. Exit application.
+
+Note (CLI Ctrl-C):
+- Ctrl-C is handled separately as an immediate abort (no save), and bypasses quit-lock.
 
 ---
 
@@ -1232,9 +1237,11 @@ Implementation:
 Save hero when:
 1. mission win
 2. mission death (delete line)
-3. mid-mission exit (EOF / window close)
+3. mid-mission exit (EOF / window close) (Ctrl-C does not save)
 
 Mid-mission exit saves only hero state; maze is regenerated next time.
+
+Ctrl-C (CLI SIGINT) abort does not save.
 
 ### 10.4 Atomic save
 - Write complete file to `heroes.csv.tmp`.
@@ -1254,6 +1261,12 @@ Input prompt:
 - CLI prompt prefix before every input read:
   - `> `
 - GUI: no prompt prefix is printed; the input field is the prompt.
+
+CLI exit:
+- Ctrl-D (EOF):
+  - `EOF received (Ctrl-D). Your progress has been saved. Goodbye!`
+- Ctrl-C:
+  - `Ctrl-C detected, quitting now. Progress will not be saved.`
 
 Exploration:
 - Blocked movement:
