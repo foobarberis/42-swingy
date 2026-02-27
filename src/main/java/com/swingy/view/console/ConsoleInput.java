@@ -3,6 +3,7 @@ package com.swingy.view.console;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -19,30 +20,41 @@ public class ConsoleInput {
     public ConsoleInput() {
         thread = new Thread(this::runReader, "console-input-thread");
         thread.setDaemon(true);
+    }
+
+    public void start() {
         thread.start();
     }
 
     private void runReader() {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
             String line;
             while (true) {
                 line = reader.readLine();
                 if (line != null) {
-                    queue.offer(line);
+                    enqueue(line);
                     continue;
                 }
                 if (quitLocked) {
-                    queue.offer(QUIT_ATTEMPT);
+                    enqueue(QUIT_ATTEMPT);
                     continue;
                 }
                 closed = true;
                 System.out.println("\nEOF received (Ctrl-D). Your progress has been saved. Goodbye!");
-                queue.offer(EOF);
+                enqueue(EOF);
                 return;
             }
         } catch (IOException e) {
             closed = true;
-            queue.offer(EOF);
+            enqueue(EOF);
+        }
+    }
+
+    private void enqueue(String value) {
+        try {
+            queue.put(value);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

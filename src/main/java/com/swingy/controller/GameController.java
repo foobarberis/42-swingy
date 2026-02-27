@@ -3,6 +3,7 @@ package com.swingy.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import com.swingy.model.Hero;
 import com.swingy.model.world.EnemyInstance;
@@ -64,7 +65,7 @@ public class GameController {
                 saveSafely(hero);
                 return MissionResult.EXIT_APP;
             }
-            cmd = cmd.trim().toLowerCase();
+            cmd = cmd.trim().toLowerCase(Locale.ROOT);
 
             Position turnStart = heroPos;
 
@@ -94,7 +95,7 @@ public class GameController {
                             return MissionResult.RETURN_MENU;
                         }
                         if (result == EncounterResult.ENEMY_DEFEATED) {
-                            maze.enemies().remove(steppedEnemy);
+                            maze.removeEnemy(steppedEnemy);
                         }
                         if (result == EncounterResult.ESCAPED) {
                             heroPos = turnStart;
@@ -123,7 +124,7 @@ public class GameController {
             view.println("You have found a health potion, do you want to drink it [Y/n]?");
             String in = view.readLine();
             if (in == null) return;
-            String a = in.trim().toLowerCase();
+            String a = in.trim().toLowerCase(Locale.ROOT);
             if (a.isEmpty() || a.equals("y")) {
                 hero.heal(hero.baseMaxHp() / 2);
                 maze.setPotionPos(null);
@@ -147,7 +148,7 @@ public class GameController {
                     }
                     return EncounterResult.HERO_DIED;
                 }
-                String a = in.trim().toLowerCase();
+                String a = in.trim().toLowerCase(Locale.ROOT);
                 if (a.isEmpty() || a.equals("y")) {
                     return combatController.fight(view, hero, enemy.enemy()) ? EncounterResult.ENEMY_DEFEATED : EncounterResult.HERO_DIED;
                 }

@@ -64,14 +64,14 @@ public class SwingView implements View {
         input.addActionListener(e -> {
             String txt = input.getText();
             input.setText("");
-            queue.offer(txt);
+            enqueue(txt);
         });
 
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
                 if (quitLocked) {
-                    queue.offer(QUIT_ATTEMPT);
+                    enqueue(QUIT_ATTEMPT);
                     return;
                 }
                 closeNow();
@@ -81,7 +81,7 @@ public class SwingView implements View {
             public void windowClosed(java.awt.event.WindowEvent e) {
                 if (!closed) {
                     closed = true;
-                    queue.offer(EOF);
+                    enqueue(EOF);
                 }
             }
         });
@@ -186,6 +186,14 @@ public class SwingView implements View {
         }
     }
 
+    private void enqueue(String value) {
+        try {
+            queue.put(value);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     @Override
     public void clearPendingInput() {
         queue.clear();
@@ -218,7 +226,7 @@ public class SwingView implements View {
     private void closeNow() {
         if (closed) return;
         closed = true;
-        queue.offer(EOF);
+        enqueue(EOF);
         frame.dispose();
     }
 }

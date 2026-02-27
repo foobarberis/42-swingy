@@ -36,8 +36,8 @@ class FogOfWarTest {
         Position heroPos = new Position(2, 2);
 
         maze.setPotionPos(new Position(2, 2)); // same as hero, hero must win
-        maze.enemies().add(new EnemyInstance(new Enemy("Goblin", false, 1, 15, 15, 100), new Position(2, 2)));
-        maze.enemies().add(new EnemyInstance(new Enemy("Orc", false, 1, 15, 15, 100), new Position(3, 2)));
+        maze.addEnemy(new EnemyInstance(new Enemy("Goblin", false, 1, 15, 15, 100), new Position(2, 2)));
+        maze.addEnemy(new EnemyInstance(new Enemy("Orc", false, 1, 15, 15, 100), new Position(3, 2)));
         maze.setPotionPos(new Position(1, 2));
         maze.setTerrain(new Position(4, 2), TileType.WALL);
 

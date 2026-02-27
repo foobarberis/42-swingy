@@ -1,5 +1,7 @@
 package com.swingy.controller;
 
+import java.util.Locale;
+
 import com.swingy.model.Armor;
 import com.swingy.model.Artifact;
 import com.swingy.model.Enemy;
@@ -44,7 +46,7 @@ public class CombatController {
                 case SUNDER -> RenderColor.GREEN;
                 default -> RenderColor.DEFAULT;
             };
-            view.println(enemy.getName() + " uses " + enemyAction.name().toLowerCase() + ".", color);
+            view.println(enemy.getName() + " uses " + enemyAction.name().toLowerCase(Locale.ROOT) + ".", color);
 
             CombatAction playerAction;
             while (true) {
@@ -153,7 +155,7 @@ public class CombatController {
                 }
                 return;
             }
-            String a = in.trim().toLowerCase();
+            String a = in.trim().toLowerCase(Locale.ROOT);
             if (a.isEmpty() || a.equals("y")) {
                 if (artifact instanceof Weapon) {
                     int oldMod = hero.getWeaponMod();

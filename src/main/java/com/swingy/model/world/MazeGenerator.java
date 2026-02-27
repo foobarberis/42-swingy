@@ -81,7 +81,7 @@ public class MazeGenerator {
         for (int i = 0; i < exits.size(); i++) {
             maze.setTerrain(adj.get(i), TileType.FLOOR);
             maze.setTerrain(exits.get(i), TileType.EXIT);
-            maze.exits().add(exits.get(i));
+            maze.addExit(exits.get(i));
         }
         return maze;
     }

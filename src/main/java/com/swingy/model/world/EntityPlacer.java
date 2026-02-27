@@ -79,8 +79,8 @@ public class EntityPlacer {
         }
 
         maybeMakeUnique(result, heroLevel);
-        maze.enemies().clear();
-        maze.enemies().addAll(result);
+        maze.clearEnemies();
+        maze.addEnemies(result);
     }
 
     private Enemy createEnemy(int heroLevel, boolean unique) {

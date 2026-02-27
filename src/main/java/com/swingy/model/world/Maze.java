@@ -1,6 +1,7 @@
 package com.swingy.model.world;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,7 +16,15 @@ public class Maze {
 
     public Maze(int size, TileType[][] terrain) {
         this.size = size;
-        this.terrain = terrain;
+        this.terrain = copyTerrain(terrain);
+    }
+
+    private TileType[][] copyTerrain(TileType[][] source) {
+        TileType[][] copy = new TileType[source.length][];
+        for (int i = 0; i < source.length; i++) {
+            copy[i] = source[i].clone();
+        }
+        return copy;
     }
 
     public int size() { return size; }
@@ -30,8 +39,13 @@ public class Maze {
 
     public Position heroStart() { return heroStart; }
     public void setHeroStart(Position heroStart) { this.heroStart = heroStart; }
-    public Set<Position> exits() { return exits; }
+    public Set<Position> exits() { return Collections.unmodifiableSet(exits); }
+    public void addExit(Position exit) { exits.add(exit); }
     public Position potionPos() { return potionPos; }
     public void setPotionPos(Position potionPos) { this.potionPos = potionPos; }
-    public List<EnemyInstance> enemies() { return enemies; }
+    public List<EnemyInstance> enemies() { return Collections.unmodifiableList(enemies); }
+    public void addEnemy(EnemyInstance enemy) { enemies.add(enemy); }
+    public void clearEnemies() { enemies.clear(); }
+    public void addEnemies(List<EnemyInstance> newEnemies) { enemies.addAll(newEnemies); }
+    public void removeEnemy(EnemyInstance enemy) { enemies.remove(enemy); }
 }

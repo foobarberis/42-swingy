@@ -5,7 +5,12 @@ import com.swingy.view.RenderColor;
 import com.swingy.view.View;
 
 public class ConsoleView implements View {
-    private final ConsoleInput input = new ConsoleInput();
+    private final ConsoleInput input;
+
+    public ConsoleView() {
+        input = new ConsoleInput();
+        input.start();
+    }
 
     @Override
     public void println(String s) {

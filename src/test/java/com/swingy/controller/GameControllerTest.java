@@ -55,7 +55,7 @@ class GameControllerTest {
 
         Maze maze = emptyMaze(5);
         Enemy enemy = new Enemy("Goblin", false, 1, 15, 15, 100);
-        maze.enemies().add(new EnemyInstance(enemy, new Position(3, 2)));
+        maze.addEnemy(new EnemyInstance(enemy, new Position(3, 2)));
 
         GameController controller = new GameController(
                 new FixedMazeGenerator(maze),
@@ -108,7 +108,7 @@ class GameControllerTest {
 
         Maze maze = emptyMaze(5);
         Enemy enemy = new Enemy("Goblin", false, 1, 15, 15, 100);
-        maze.enemies().add(new EnemyInstance(enemy, new Position(3, 2)));
+        maze.addEnemy(new EnemyInstance(enemy, new Position(3, 2)));
 
         GameController controller = new GameController(
                 new FixedMazeGenerator(maze),

@@ -1,5 +1,6 @@
 package com.swingy.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import javax.validation.Validator;
@@ -97,7 +98,7 @@ public class MenuController {
             Hero hero = repository.loadByName(parts[1]);
             if (!validator.validate(hero).isEmpty()) throw new IllegalStateException();
             return MenuResult.start(hero);
-        } catch (Exception e) {
+        } catch (IOException | IllegalStateException e) {
             view.println("Could not load save.");
             return MenuResult.none();
         }
@@ -128,8 +129,33 @@ public class MenuController {
     public record MenuResult(Type type, Hero hero) {
         enum Type { NONE, START, EXIT }
 
+        public MenuResult {
+            hero = copyHero(hero);
+        }
+
+        @Override
+        public Hero hero() {
+            return copyHero(hero);
+        }
+
         static MenuResult none() { return new MenuResult(Type.NONE, null); }
         static MenuResult start(Hero hero) { return new MenuResult(Type.START, hero); }
         static MenuResult exit() { return new MenuResult(Type.EXIT, null); }
+
+        private static Hero copyHero(Hero source) {
+            if (source == null) {
+                return null;
+            }
+            return new Hero(
+                source.getName(),
+                source.getHeroClass(),
+                source.getLevel(),
+                source.getXp(),
+                source.getCurrentHp(),
+                source.getWeaponMod(),
+                source.getArmorMod(),
+                source.getHelmMod()
+            );
+        }
     }
 }
