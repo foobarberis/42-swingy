@@ -10,7 +10,6 @@ import com.swingy.model.world.Maze;
 import com.swingy.model.world.MazeGenerator;
 import com.swingy.model.world.Position;
 import com.swingy.model.world.TileType;
-import com.swingy.persistence.HeroRepository;
 import com.swingy.support.FakeView;
 import com.swingy.support.InMemoryHeroRepository;
 import com.swingy.util.RandomProvider;

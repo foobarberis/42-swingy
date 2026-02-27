@@ -20,14 +20,16 @@ java -jar target/swingy.jar gui
 # build + run via Maven profiles
 mvn -Pcli clean package exec:exec@run-cli
 mvn -Pgui clean package exec:exec@run-gui  # enables Swing font AA
-
-# run tests (no external test framework)
-mvn -Ptests test-compile exec:java
 ```
 
-## Static analysis (SpotBugs)
+## Tests
 
-SpotBugs is integrated via the SpotBugs Maven Plugin.
+```bash
+mvn test
+```
+
+## Static analysis
+
 Run Maven itself on Java 21 (otherwise you may accidentally execute under another installed JDK).
 
 ```bash
@@ -35,18 +37,28 @@ Run Maven itself on Java 21 (otherwise you may accidentally execute under anothe
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 export PATH="$JAVA_HOME/bin:$PATH"
 
-# run SpotBugs (report in target/spotbugsXml.xml)
+# SpotBugs report (target/spotbugsXml.xml)
 mvn -DskipTests spotbugs:spotbugs
 
-# fail the build if bugs are found
+# SpotBugs gate (fails build on findings)
 mvn -DskipTests spotbugs:check
 
-# security-only scan (FindSecBugs; filters: spotbugs-security-include.xml/exclude.xml)
+# SpotBugs security scan (FindSecBugs; filters: spotbugs-security-include.xml/exclude.xml)
 mvn -DskipTests -Pspotbugs-security spotbugs:spotbugs
+
+# Checkstyle report (target/site/checkstyle.html)
+mvn checkstyle:checkstyle
+
+# Checkstyle gate (fails build on violations)
+mvn checkstyle:check
+
+# Optional combined quality gate (verify phase)
+mvn -Pquality verify
 ```
 
 Outputs:
-- `target/spotbugsXml.xml` (main SpotBugs XML report)
+- `target/spotbugsXml.xml` (SpotBugs XML report)
+- `target/site/checkstyle.html` (Checkstyle HTML report)
 
 ## Documentation map
 
