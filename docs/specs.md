@@ -122,17 +122,12 @@ Recommended subpackages (strict layering):
         │               │   └── ConsoleInput.java
         │               └── swing
         │                   ├── SwingView.java
-        │                   ├── SwingWorldPanel.java
         │                   └── SwingStyles.java
-        └── resources
-            ├── images
-            │   └── (optional sprites/icons)
-            └── app.properties
 ```
 
 Notes:
 - `src/test/java` is optional; no external test framework is mandated.
-- GUI can be purely geometric rendering; sprites are optional.
+- GUI mode is a windowed text UI (status + scrollable log + input). The fog-of-war viewport is rendered as ASCII into the log; no graphical tile rendering is implemented.
 
 ### 1.4 `pom.xml`
 
@@ -945,12 +940,8 @@ Algorithm (GDD exact):
 5. If still insufficient, keep fewer enemies.
 
 ### 6.9 Entities are overlays; rendering precedence
-CLI viewport precedence (GDD exact):
-- Enemy > potion > floor
-- Player > potion > floor
-
-GUI world precedence (GDD exact):
-- Player > enemy > potion > floor
+Viewport precedence (CLI and GUI):
+- Player `@` > enemy `M`/`U` > potion `!` > terrain (`.`/`#`/`X`)
 
 ---
 

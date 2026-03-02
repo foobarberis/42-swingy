@@ -107,7 +107,7 @@ Input prompt:
 
 ### 3.2 In-Game
 - Movement: `north|south|east|west` (aliases: `n|s|e|w`)
-- Map: the fog of war viewport is rendered automatically before each in-mission input read (CLI prints ASCII; GUI draws tiles).
+- Map: the fog of war viewport is rendered automatically before each in-mission input read (CLI prints ASCII; GUI logs the same ASCII map into the scrollable log panel).
   - If the hero steps onto the potion tile, print the drink prompt (see Health).
 
 
@@ -205,7 +205,7 @@ MapSize = min(MapSizeRaw, MAP_SIZE_CAP)
 Hero starts at the center.
 
 ### 6.2 Tiles and Fog of War
-Symbols (CLI):
+Symbols (map):
 - Player: `@`
 - Floor: `.`
 - Wall: `#`
@@ -222,7 +222,7 @@ Overlay precedence (both CLI and GUI viewport rendering):
 
 Fog of war is mandatory: viewport-based rendering:
 - The logical map view is a fixed-size **11x11** window centered on the hero.
-- The viewport is rendered automatically before each in-mission input read (CLI prints ASCII; GUI draws tiles).
+- The viewport is rendered automatically before each in-mission input read (CLI prints ASCII; GUI logs the same ASCII map in a monospaced font).
 - If the window extends outside the maze bounds, out-of-bounds cells are spaces (` `).
 - CLI output trims fully blank top/bottom rows and prints exactly one blank line above and below the visible map block.
 - The window shows all entities/tiles inside it (walls, floors, exits, potion, enemies); there is no line-of-sight blocking by walls.
@@ -711,9 +711,8 @@ Example:
 ### 12.2 GUI
 - Layout (vertical stack, full width):
   1. Status line (hero stats) at the top
-  2. World view (graphical tiles)
-  3. Log panel (scrollable, full width; supports colored combat telegraphs)
-  4. Text input field at the bottom (single-line)
-- No ASCII map rendering in GUI mode.
+  2. Log panel (scrollable, full width; supports colored combat telegraphs and the ASCII viewport map)
+  3. Text input field at the bottom (single-line)
+- The fog-of-war viewport is appended to the log before each in-mission input read (same trimming rules as CLI).
 - No `> ` prompt marker is printed in GUI mode.
 - Combat deadline enforced.

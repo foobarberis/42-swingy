@@ -10,7 +10,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
@@ -27,6 +26,8 @@ public class SwingView implements View {
     private static final String EOF = "__EOF__";
     private static final String QUIT_ATTEMPT = "__QUIT_ATTEMPT__";
 
+    private static final String MAP_FONT_FAMILY = "Monospaced";
+
     private final LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private volatile boolean closed;
     private volatile boolean quitLocked;
@@ -36,7 +37,6 @@ public class SwingView implements View {
     private JTextPane logArea;
     private JTextField input;
     private JLabel status;
-    private SwingWorldPanel worldPanel;
 
     public SwingView() {
         SwingUtilities.invokeLater(this::init);
@@ -55,7 +55,6 @@ public class SwingView implements View {
         frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         frame.setSize(800, 600);
 
-        worldPanel = new SwingWorldPanel();
         logArea = new JTextPane();
         logArea.setEditable(false);
         input = new JTextField();
@@ -100,18 +99,11 @@ public class SwingView implements View {
         promptPanel.setPreferredSize(new Dimension(0, oneLineHeight));
         promptPanel.setMinimumSize(new Dimension(0, oneLineHeight));
 
-        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, worldPanel, logScrollPane);
-        centerSplit.setResizeWeight(0.625);
-        centerSplit.setContinuousLayout(true);
-        centerSplit.setBorder(null);
-
         frame.setLayout(new BorderLayout());
         frame.add(statusPanel, BorderLayout.NORTH);
-        frame.add(centerSplit, BorderLayout.CENTER);
+        frame.add(logScrollPane, BorderLayout.CENTER);
         frame.add(promptPanel, BorderLayout.SOUTH);
         frame.setVisible(true);
-
-        SwingUtilities.invokeLater(() -> centerSplit.setDividerLocation(0.625));
     }
 
     @Override
@@ -131,14 +123,50 @@ public class SwingView implements View {
     }
 
     private void appendLine(String text, Color color) {
+        appendLine(text, color, null);
+    }
+
+    private void appendLine(String text, Color color, String fontFamily) {
         StyledDocument doc = logArea.getStyledDocument();
         SimpleAttributeSet attrs = new SimpleAttributeSet();
         StyleConstants.setForeground(attrs, color);
+        if (fontFamily != null && !fontFamily.isBlank()) {
+            StyleConstants.setFontFamily(attrs, fontFamily);
+        }
         try {
             doc.insertString(doc.getLength(), text + "\n", attrs);
             logArea.setCaretPosition(doc.getLength());
         } catch (BadLocationException ignored) {
         }
+    }
+
+    private void appendMap(char[][] window) {
+        if (window == null || window.length == 0) {
+            appendLine("", Color.BLACK, MAP_FONT_FAMILY);
+            return;
+        }
+
+        int top = 0;
+        int bottom = window.length - 1;
+
+        while (top <= bottom && isBlankRow(window[top])) top++;
+        while (bottom >= top && isBlankRow(window[bottom])) bottom--;
+
+        appendLine("", Color.BLACK, MAP_FONT_FAMILY);
+        if (top <= bottom) {
+            for (int i = top; i <= bottom; i++) {
+                appendLine(new String(window[i]), Color.BLACK, MAP_FONT_FAMILY);
+            }
+        }
+        appendLine("", Color.BLACK, MAP_FONT_FAMILY);
+    }
+
+    private boolean isBlankRow(char[] row) {
+        if (row == null) return true;
+        for (char c : row) {
+            if (c != ' ') return false;
+        }
+        return true;
     }
 
     @Override
@@ -148,7 +176,7 @@ public class SwingView implements View {
 
     @Override
     public void renderMap(char[][] window) {
-        SwingUtilities.invokeLater(() -> worldPanel.setViewport(window));
+        SwingUtilities.invokeLater(() -> appendMap(window));
     }
 
     @Override
