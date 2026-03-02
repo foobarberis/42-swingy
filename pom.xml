@@ -76,7 +76,7 @@
         <configuration>
           <effort>Max</effort>
           <threshold>Low</threshold>
-          <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+          <excludeFilterFile>config/spotbugs/spotbugs-exclude.xml</excludeFilterFile>
         </configuration>
         <dependencies>
           <!-- Force SpotBugs core version -->
@@ -236,8 +236,8 @@
             <configuration>
               <effort>Max</effort>
               <threshold>Low</threshold>
-              <includeFilterFile>spotbugs-security-include.xml</includeFilterFile>
-              <excludeFilterFile>spotbugs-security-exclude.xml</excludeFilterFile>
+              <includeFilterFile>config/spotbugs/spotbugs-security-include.xml</includeFilterFile>
+              <excludeFilterFile>config/spotbugs/spotbugs-security-exclude.xml</excludeFilterFile>
               <plugins>
                 <plugin>
                   <groupId>com.h3xstream.findsecbugs</groupId>

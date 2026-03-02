@@ -3,7 +3,7 @@
     <!-- Ctrl-C shutdown intentionally terminates the process immediately without save. -->
     <Match>
         <Class name="com.swingy.app.Main"/>
-        <Method name="lambda$installCtrlCNoSaveHandler$0"/>
+        <Method name="~lambda.*"/>
         <Bug pattern="DM_EXIT"/>
     </Match>
 

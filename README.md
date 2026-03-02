@@ -43,7 +43,7 @@ mvn -DskipTests spotbugs:spotbugs
 # SpotBugs gate (fails build on findings)
 mvn -DskipTests spotbugs:check
 
-# SpotBugs security scan (FindSecBugs; filters: spotbugs-security-include.xml/exclude.xml)
+# SpotBugs security scan (FindSecBugs; filters: config/spotbugs/spotbugs-security-include.xml and config/spotbugs/spotbugs-security-exclude.xml)
 mvn -DskipTests -Pspotbugs-security spotbugs:spotbugs
 
 # Checkstyle report (target/site/checkstyle.html)
