@@ -2,12 +2,9 @@ package com.swingy.controller;
 
 import java.util.Locale;
 
-import com.swingy.model.Armor;
 import com.swingy.model.Artifact;
 import com.swingy.model.Enemy;
-import com.swingy.model.Helm;
 import com.swingy.model.Hero;
-import com.swingy.model.Weapon;
 import com.swingy.model.combat.CombatAction;
 import com.swingy.model.combat.CombatOutcome;
 import com.swingy.model.combat.CombatResolver;
@@ -34,88 +31,88 @@ public class CombatController {
                 hero.debuffState().beginRound();
                 enemy.debuffState().beginRound();
 
-            CombatAction enemyAction = switch (rng.nextInt(3)) {
-                case 0 -> CombatAction.ATTACK;
-                case 1 -> CombatAction.DEFEND;
-                default -> CombatAction.SUNDER;
-            };
+                CombatAction enemyAction = switch (rng.nextInt(3)) {
+                    case 0 -> CombatAction.ATTACK;
+                    case 1 -> CombatAction.DEFEND;
+                    default -> CombatAction.SUNDER;
+                };
 
-            RenderColor color = switch (enemyAction) {
-                case ATTACK -> RenderColor.RED;
-                case DEFEND -> RenderColor.BLUE;
-                case SUNDER -> RenderColor.GREEN;
-                default -> RenderColor.DEFAULT;
-            };
-            view.println(enemy.getName() + " uses " + enemyAction.name().toLowerCase(Locale.ROOT) + ".", color);
+                RenderColor color = switch (enemyAction) {
+                    case ATTACK -> RenderColor.RED;
+                    case DEFEND -> RenderColor.BLUE;
+                    case SUNDER -> RenderColor.GREEN;
+                    default -> RenderColor.DEFAULT;
+                };
+                view.println(enemy.getName() + " uses " + enemyAction.name().toLowerCase(Locale.ROOT) + ".", color);
 
-            CombatAction playerAction;
-            while (true) {
-                view.clearPendingInput();
-                String in = view.readLine(COMBAT_TIMEOUT_MS);
-                if (in == null) {
-                    if (view.consumeQuitAttempt()) {
-                        view.println("You cannot quit now.");
-                    }
-                    playerAction = CombatAction.IDLE;
-                    break;
-                }
-                CombatAction parsed = CombatAction.fromInput(in.trim());
-                if (parsed == null) {
-                    view.println("Unknown command. Available commands: attack (a), defend (d), sunder (s)");
-                    playerAction = CombatAction.IDLE;
-                } else {
-                    playerAction = parsed;
-                }
-                break;
-            }
-
-            Boolean qteSuccess = null;
-            if (playerAction != CombatAction.IDLE && playerAction == enemyAction) {
-                QteChallenge qte = QteChallenge.random(rng);
-                view.println("QTE: " + qte.letters());
+                CombatAction playerAction;
                 while (true) {
                     view.clearPendingInput();
-                    String qteInput = view.readLine(COMBAT_TIMEOUT_MS);
-                    if (qteInput == null) {
+                    String in = view.readLine(COMBAT_TIMEOUT_MS);
+                    if (in == null) {
                         if (view.consumeQuitAttempt()) {
                             view.println("You cannot quit now.");
                         }
-                        qteSuccess = false;
+                        playerAction = CombatAction.IDLE;
                         break;
                     }
-                    qteSuccess = qte.letters().equals(qteInput);
+                    CombatAction parsed = CombatAction.fromInput(in.trim());
+                    if (parsed == null) {
+                        view.println("Unknown command. Available commands: attack (a), defend (d), sunder (s)");
+                        playerAction = CombatAction.IDLE;
+                    } else {
+                        playerAction = parsed;
+                    }
                     break;
                 }
+
+                Boolean qteSuccess = null;
+                if (playerAction != CombatAction.IDLE && playerAction == enemyAction) {
+                    QteChallenge qte = QteChallenge.random(rng);
+                    view.println("QTE: " + qte.letters());
+                    while (true) {
+                        view.clearPendingInput();
+                        String qteInput = view.readLine(COMBAT_TIMEOUT_MS);
+                        if (qteInput == null) {
+                            if (view.consumeQuitAttempt()) {
+                                view.println("You cannot quit now.");
+                            }
+                            qteSuccess = false;
+                            break;
+                        }
+                        qteSuccess = qte.letters().equals(qteInput);
+                        break;
+                    }
+                }
+
+                CombatOutcome out = resolver.resolve(hero, enemy, enemyAction, playerAction, qteSuccess);
+                if (out.heroDamage > 0) hero.damage(out.heroDamage);
+                if (out.enemyDamage > 0) enemy.damage(out.enemyDamage);
+                if (out.heroHeal > 0) hero.heal(out.heroHeal);
+                if (out.enemyHeal > 0) enemy.heal(out.enemyHeal);
+                if (out.applyArmorBrokenToHero) hero.debuffState().applyArmorBrokenForNextRound();
+                if (out.applyArmorBrokenToEnemy) enemy.debuffState().applyArmorBrokenForNextRound();
+
+                view.println("You: " + hero.getCurrentHp() + " HP | " + enemy.getName() + ": " + enemy.getCurrentHp() + " HP");
             }
 
-            CombatOutcome out = resolver.resolve(hero, enemy, enemyAction, playerAction, qteSuccess);
-            if (out.heroDamage > 0) hero.damage(out.heroDamage);
-            if (out.enemyDamage > 0) enemy.damage(out.enemyDamage);
-            if (out.heroHeal > 0) hero.heal(out.heroHeal);
-            if (out.enemyHeal > 0) enemy.heal(out.enemyHeal);
-            if (out.applyArmorBrokenToHero) hero.debuffState().applyArmorBrokenForNextRound();
-            if (out.applyArmorBrokenToEnemy) enemy.debuffState().applyArmorBrokenForNextRound();
+            if (hero.getCurrentHp() <= 0) {
+                return false;
+            }
 
-            view.println("You: " + hero.getCurrentHp() + " HP | " + enemy.getName() + ": " + enemy.getCurrentHp() + " HP");
-        }
+            int xpByEnemyLevel = hero.xpThreshold(enemy.getLevel());
+            int xpGain = xpByEnemyLevel / 10;
+            int levelsGained = hero.addXp(xpGain);
+            if (levelsGained > 0) {
+                view.println("Congratulations, you have reached level " + hero.getLevel() + "!");
+            }
 
-        if (hero.getCurrentHp() <= 0) {
-            return false;
-        }
-
-        int xpByEnemyLevel = hero.xpThreshold(enemy.getLevel());
-        int xpGain = xpByEnemyLevel / 10;
-        int levelsGained = hero.addXp(xpGain);
-        if (levelsGained > 0) {
-            view.println("Congratulations, you have reached level " + hero.getLevel() + "!");
-        }
-
-        boolean shouldDrop = enemy.isUnique() || rng.chance(0.35);
-        if (shouldDrop) {
-            int artifactMod = Math.max(0, enemy.getLevel() - 1);
-            Artifact artifact = randomArtifact(artifactMod);
-            promptEquip(view, hero, artifact);
-        }
+            boolean shouldDrop = enemy.isUnique() || rng.chance(0.35);
+            if (shouldDrop) {
+                int artifactMod = Math.max(0, enemy.getLevel() - 1);
+                Artifact artifact = randomArtifact(artifactMod);
+                promptEquip(view, hero, artifact);
+            }
 
             return true;
         } finally {
@@ -125,9 +122,9 @@ public class CombatController {
 
     private Artifact randomArtifact(int mod) {
         return switch (rng.nextInt(3)) {
-            case 0 -> new Weapon(mod);
-            case 1 -> new Armor(mod);
-            default -> new Helm(mod);
+            case 0 -> new Artifact.Weapon(mod);
+            case 1 -> new Artifact.Armor(mod);
+            default -> new Artifact.Helm(mod);
         };
     }
 
@@ -135,10 +132,10 @@ public class CombatController {
         int effectiveMod = hero.effectiveMod(artifact.mod());
         String stat;
         int bonus;
-        if (artifact instanceof Weapon) {
+        if (artifact instanceof Artifact.Weapon) {
             stat = "ATK";
             bonus = effectiveMod * 3;
-        } else if (artifact instanceof Armor) {
+        } else if (artifact instanceof Artifact.Armor) {
             stat = "DEF";
             bonus = effectiveMod * 3;
         } else {
@@ -160,19 +157,25 @@ public class CombatController {
             }
             String a = in.trim().toLowerCase(Locale.ROOT);
             if (a.isEmpty() || a.equals("y")) {
-                if (artifact instanceof Weapon) {
+                if (artifact instanceof Artifact.Weapon) {
                     int oldMod = hero.getWeaponMod();
-                    if (oldMod >= 0) view.println(new Weapon(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    if (oldMod >= 0) {
+                        view.println(new Artifact.Weapon(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    }
                     hero.setWeaponMod(artifact.mod());
                 }
-                if (artifact instanceof Armor) {
+                if (artifact instanceof Artifact.Armor) {
                     int oldMod = hero.getArmorMod();
-                    if (oldMod >= 0) view.println(new Armor(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    if (oldMod >= 0) {
+                        view.println(new Artifact.Armor(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    }
                     hero.setArmorMod(artifact.mod());
                 }
-                if (artifact instanceof Helm) {
+                if (artifact instanceof Artifact.Helm) {
                     int oldMod = hero.getHelmMod();
-                    if (oldMod >= 0) view.println(new Helm(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    if (oldMod >= 0) {
+                        view.println(new Artifact.Helm(oldMod).displayName(hero.getHeroClass()) + " has been discarded");
+                    }
                     hero.setHelmMod(artifact.mod());
                 }
                 hero.capHp();
