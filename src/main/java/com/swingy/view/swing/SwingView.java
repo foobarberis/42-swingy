@@ -28,6 +28,10 @@ public class SwingView implements View {
 
     private static final String MAP_FONT_FAMILY = "Monospaced";
 
+    private static final Color ACTION_ATTACK = Color.RED;
+    private static final Color ACTION_DEFEND = Color.BLUE;
+    private static final Color ACTION_SUNDER = Color.GREEN;
+
     private final LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
     private volatile boolean closed;
     private volatile boolean quitLocked;
@@ -114,9 +118,9 @@ public class SwingView implements View {
     @Override
     public void println(String s, RenderColor color) {
         Color swingColor = switch (color) {
-            case RED -> SwingStyles.ATTACK;
-            case BLUE -> SwingStyles.DEFEND;
-            case GREEN -> SwingStyles.SUNDER;
+            case RED -> ACTION_ATTACK;
+            case BLUE -> ACTION_DEFEND;
+            case GREEN -> ACTION_SUNDER;
             default -> Color.BLACK;
         };
         SwingUtilities.invokeLater(() -> appendLine(s, swingColor));
