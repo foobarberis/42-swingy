@@ -1123,7 +1123,7 @@ CLI ANSI codes (recommended):
 - Reset: `\u001B[0m`
 
 GUI:
-- Use `java.awt.Color.RED`, `Color.BLUE`, and a readable green (`new Color(0, 128, 0)`), applied to styled text in a `JTextPane` log.
+- Use `java.awt.Color.RED`, `Color.BLUE`, and `Color.GREEN`, applied to styled text in a `JTextPane` log.
 
 ---
 

@@ -40,9 +40,9 @@ class GameControllerTest {
                 new NonMovingRandomProvider()
         );
 
-        MissionResult result = controller.runMission(view, hero);
+        GameController.MissionResult result = controller.runMission(view, hero);
 
-        assertEquals(MissionResult.RETURN_MENU, result);
+        assertEquals(GameController.MissionResult.RETURN_MENU, result);
         assertEquals(1, repository.saveCalls);
         assertTrue(view.outputs().contains("Victory! You escaped the maze.\n"));
     }
@@ -65,9 +65,9 @@ class GameControllerTest {
                 new NonMovingRandomProvider()
         );
 
-        MissionResult result = controller.runMission(view, hero);
+        GameController.MissionResult result = controller.runMission(view, hero);
 
-        assertEquals(MissionResult.RETURN_MENU, result);
+        assertEquals(GameController.MissionResult.RETURN_MENU, result);
         assertEquals(1, repository.deleteCalls);
         assertEquals("Alice", repository.lastDeletedName);
         assertTrue(view.outputs().contains("You died. Your hero has been removed.\n"));
@@ -92,9 +92,9 @@ class GameControllerTest {
                 new NonMovingRandomProvider()
         );
 
-        MissionResult result = controller.runMission(view, hero);
+        GameController.MissionResult result = controller.runMission(view, hero);
 
-        assertEquals(MissionResult.EXIT_APP, result);
+        assertEquals(GameController.MissionResult.EXIT_APP, result);
         assertEquals(1, repository.saveCalls);
         assertEquals(107, hero.getCurrentHp()); // +62 heal from baseMaxHp/2
         assertTrue(view.outputs().contains("You have found a health potion, do you want to drink it [Y/n]?"));
@@ -118,9 +118,9 @@ class GameControllerTest {
                 new NonMovingRandomProvider()
         );
 
-        MissionResult result = controller.runMission(view, hero);
+        GameController.MissionResult result = controller.runMission(view, hero);
 
-        assertEquals(MissionResult.EXIT_APP, result);
+        assertEquals(GameController.MissionResult.EXIT_APP, result);
         assertTrue(view.outputs().contains("You cannot quit now."));
     }
 
