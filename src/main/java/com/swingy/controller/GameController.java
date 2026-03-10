@@ -18,6 +18,11 @@ import com.swingy.util.RandomProvider;
 import com.swingy.view.View;
 
 public class GameController {
+    public enum MissionResult {
+        RETURN_MENU,
+        EXIT_APP
+    }
+
     private final MazeGenerator mazeGenerator;
     private final EntityPlacer entityPlacer;
     private final CombatController combatController;
