@@ -105,7 +105,10 @@ public class CombatController {
 
         int xpByEnemyLevel = hero.xpThreshold(enemy.getLevel());
         int xpGain = xpByEnemyLevel / 10;
-        hero.addXp(xpGain);
+        int levelsGained = hero.addXp(xpGain);
+        if (levelsGained > 0) {
+            view.println("Congratulations, you have reached level " + hero.getLevel() + "!");
+        }
 
         boolean shouldDrop = enemy.isUnique() || rng.chance(0.35);
         if (shouldDrop) {

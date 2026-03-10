@@ -78,7 +78,7 @@ public class Hero {
         return level * 1000 + (level - 1) * (level - 1) * 450;
     }
 
-    public void addXp(int gain) {
+    public int addXp(int gain) {
         xp += gain;
         int levelsGained = 0;
         while (xp >= xpThreshold(level)) {
@@ -89,6 +89,7 @@ public class Hero {
         if (levelsGained > 0) {
             currentHp = Math.min(effectiveMaxHp(), currentHp + levelsGained * 10);
         }
+        return levelsGained;
     }
 
     public void heal(int amount) {
