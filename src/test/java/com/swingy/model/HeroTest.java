@@ -51,6 +51,6 @@ class HeroTest {
     @Test
     void statusLineFormatIsStable() {
         Hero hero = Hero.createNew("Alice", HeroClass.WARRIOR);
-        assertEquals("[Lv. 1 War. | 125/125 HP 10/10 ATK 20/20 DEF | 0/1000 XP]", hero.statusLine());
+        assertEquals("[Alice | Lv. 1 War. | 125/125 HP 10/10 ATK 20/20 DEF | 0/1000 XP]", hero.statusLine());
     }
 }

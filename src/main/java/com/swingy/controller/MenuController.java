@@ -113,7 +113,7 @@ public class MenuController {
             }
             view.println("Available heroes:");
             for (Hero h : heroes) {
-                view.println("  - " + h.getName() + " " + h.getHeroClass().name() + " Lv." + h.getLevel());
+                view.println("  " + h.statusLine());
             }
         } catch (SaveFileCorruptedException e) {
             printCorruptedSaveMessage(view, e);

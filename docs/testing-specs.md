@@ -157,7 +157,7 @@ Regression risk addressed:
 - breaking equipment scaling behavior.
 
 #### Test: `statusLineFormatIsStable`
-Validates the exact `statusLine()` format at level 1 warrior baseline.
+Validates the exact `statusLine()` format at level 1 warrior baseline, including the hero name prefix.
 
 Regression risk addressed:
 - UX string drift.

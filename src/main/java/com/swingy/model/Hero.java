@@ -105,9 +105,9 @@ public class Hero {
     }
 
     public String statusLine() {
-        return "[Lv. " + level + " " + heroClass.abbr() + " | " + currentHp + "/" + effectiveMaxHp() + " HP " +
-                effectiveAtk() + "/" + baseAtk() + " ATK " + effectiveDef() + "/" + baseDef() + " DEF | " + xp + "/" +
-                xpThreshold(level) + " XP]";
+        return "[" + name + " | Lv. " + level + " " + heroClass.abbr() + " | " + currentHp + "/" + effectiveMaxHp() +
+                " HP " + effectiveAtk() + "/" + baseAtk() + " ATK " + effectiveDef() + "/" + baseDef() + " DEF | " + xp +
+                "/" + xpThreshold(level) + " XP]";
     }
 
     public DebuffState debuffState() { return debuffState; }

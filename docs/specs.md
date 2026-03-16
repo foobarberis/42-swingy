@@ -287,6 +287,7 @@ Exit handling:
 3. Read untimed command line.
 4. `MenuController` parses:
    - `list` → view prints list → stay in MENU
+     - for each saved hero, print one compact status line using the same format as the in-mission status line
    - `create <class> <name>`
      - validate argument count (must be exactly 2 args: class + name)
        - on failure: print `Usage: create warrior|rogue|mage <name>` and stay in MENU
@@ -311,7 +312,7 @@ Exit handling:
    - place enemies (count formula + spacing/relax)
    - apply unique rule (25% chance, at most one, replaces one enemy)
    - set hero position to center `(size/2, size/2)`
-2. View prints status line.
+2. View prints status line, including the hero name prefix.
 
 #### 2.3.3 Exploration turn
 Exploration loop iteration:

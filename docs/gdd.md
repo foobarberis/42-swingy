@@ -19,6 +19,10 @@ Runtime view switching is not implemented.
 ### 2.1 Starting Screen
 On entering the starting screen, the game prints the list of available heroes automatically.
 
+Hero list format:
+- One compact status line per hero, reusing the in-game status-line style.
+- Each line includes: hero name, hero class abbreviation, level, current/effective HP, effective/base ATK, effective/base DEF, and current/next-threshold XP.
+
 Actions:
 - Create a hero
 - Load an existing hero
@@ -697,11 +701,11 @@ Stat definitions (for the prompt):
 
 Prompt/status line format:
 ```text
-[Lv. <level> <classAbbrev> | <currentHp>/<effectiveMaxHp> HP <effectiveAtk>/<baseAtk> ATK <effectiveDef>/<baseDef> DEF | <xp>/<xpNextThreshold> XP]
+[<heroName> | Lv. <level> <classAbbrev> | <currentHp>/<effectiveMaxHp> HP <effectiveAtk>/<baseAtk> ATK <effectiveDef>/<baseDef> DEF | <xp>/<xpNextThreshold> XP]
 ```
 Example:
 ```text
-[Lv. 1 War. | 125/125 HP 10/10 ATK 20/20 DEF | 0/1000 XP]
+[Alice | Lv. 1 War. | 125/125 HP 10/10 ATK 20/20 DEF | 0/1000 XP]
 ```
 
 ### 12.1 CLI
