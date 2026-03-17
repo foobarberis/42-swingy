@@ -6,17 +6,10 @@
   <groupId>com.swingy</groupId>
   <artifactId>swingy</artifactId>
   <version>1.0.0</version>
-  <packaging>jar</packaging>
-
   <properties>
-    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-    <spotbugs-maven-plugin.version>4.9.8.0</spotbugs-maven-plugin.version>
-    <spotbugs.version>4.9.8</spotbugs.version>
-    <findsecbugs.version>1.12.0</findsecbugs.version>
-    <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-    <checkstyle.version>10.21.4</checkstyle.version>
+    <run.mode>console</run.mode>
   </properties>
 
   <dependencies>
@@ -46,6 +39,13 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.13.0</version>
+        <configuration>
+          <showWarnings>true</showWarnings>
+          <compilerArgs>
+            <arg>-Xlint:all</arg>
+            <arg>-Werror</arg>
+          </compilerArgs>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -59,7 +59,21 @@
             </goals>
             <configuration>
               <createDependencyReducedPom>false</createDependencyReducedPom>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/versions/**/module-info.class</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/DEPENDENCIES</exclude>
+                    <exclude>META-INF/LICENSE*</exclude>
+                    <exclude>META-INF/NOTICE*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
               <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.swingy.app.Main</mainClass>
                 </transformer>
@@ -70,49 +84,33 @@
       </plugin>
 
       <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>${spotbugs-maven-plugin.version}</version>
-        <configuration>
-          <effort>Max</effort>
-          <threshold>Low</threshold>
-          <excludeFilterFile>config/spotbugs/spotbugs-exclude.xml</excludeFilterFile>
-        </configuration>
-        <dependencies>
-          <!-- Force SpotBugs core version -->
-          <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs</artifactId>
-            <version>${spotbugs.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${maven-checkstyle-plugin.version}</version>
-        <configuration>
-          <configLocation>config/checkstyle/checkstyle.xml</configLocation>
-          <suppressionsLocation>config/checkstyle/suppressions.xml</suppressionsLocation>
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <encoding>${project.build.sourceEncoding}</encoding>
-          <consoleOutput>true</consoleOutput>
-          <failsOnError>true</failsOnError>
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>com.puppycrawl.tools</groupId>
-            <artifactId>checkstyle</artifactId>
-            <version>${checkstyle.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>run</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>${java.home}/bin/java</executable>
+              <inheritIo>true</inheritIo>
+              <arguments>
+                <argument>-Dswing.aatext=true</argument>
+                <argument>-Dawt.useSystemAAFontSettings=on</argument>
+                <argument>-jar</argument>
+                <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+                <argument>${run.mode}</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
@@ -120,135 +118,9 @@
   <profiles>
     <profile>
       <id>gui</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <version>3.5.0</version>
-            <executions>
-              <execution>
-                <id>run-gui</id>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <configuration>
-                  <executable>${java.home}/bin/java</executable>
-                  <inheritIo>true</inheritIo>
-                  <arguments>
-                    <argument>-Dswing.aatext=true</argument>
-                    <argument>-Dawt.useSystemAAFontSettings=on</argument>
-                    <argument>-jar</argument>
-                    <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
-                    <argument>gui</argument>
-                  </arguments>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>cli</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <version>3.5.0</version>
-            <executions>
-              <execution>
-                <id>run-cli</id>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <configuration>
-                  <executable>${java.home}/bin/java</executable>
-                  <inheritIo>true</inheritIo>
-                  <arguments>
-                    <argument>-jar</argument>
-                    <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
-                    <argument>console</argument>
-                  </arguments>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>tests</id>
       <properties>
-        <exec.mainClass>com.swingy.TestRunner</exec.mainClass>
-        <exec.classpathScope>test</exec.classpathScope>
-        <exec.jvmArgs>-ea</exec.jvmArgs>
+        <run.mode>gui</run.mode>
       </properties>
-    </profile>
-
-    <profile>
-      <id>quality</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>${maven-checkstyle-plugin.version}</version>
-            <executions>
-              <execution>
-                <id>checkstyle-verify</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
-            <version>${spotbugs-maven-plugin.version}</version>
-            <executions>
-              <execution>
-                <id>spotbugs-verify</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>spotbugs-security</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
-            <version>${spotbugs-maven-plugin.version}</version>
-            <configuration>
-              <effort>Max</effort>
-              <threshold>Low</threshold>
-              <includeFilterFile>config/spotbugs/spotbugs-security-include.xml</includeFilterFile>
-              <excludeFilterFile>config/spotbugs/spotbugs-security-exclude.xml</excludeFilterFile>
-              <plugins>
-                <plugin>
-                  <groupId>com.h3xstream.findsecbugs</groupId>
-                  <artifactId>findsecbugs-plugin</artifactId>
-                  <version>${findsecbugs.version}</version>
-                </plugin>
-              </plugins>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
 </project>

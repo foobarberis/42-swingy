@@ -3,20 +3,25 @@ package com.swingy.persistence;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public class SaveFileCorruptedException extends IOException {
-    private final Path path;
+public final class SaveFileCorruptedException extends IOException {
+    private static final long serialVersionUID = 1L;
+
+    private final transient Path path;
     private final int lineNumber;
+    private final String reason;
 
     public SaveFileCorruptedException(Path path, int lineNumber, String reason) {
-        super("Save file " + path.getFileName() + " is corrupted at line " + lineNumber + ": " + reason);
+        super(message(path, lineNumber, reason));
         this.path = path;
         this.lineNumber = lineNumber;
+        this.reason = reason;
     }
 
     public SaveFileCorruptedException(Path path, int lineNumber, String reason, Throwable cause) {
-        super("Save file " + path.getFileName() + " is corrupted at line " + lineNumber + ": " + reason, cause);
+        super(message(path, lineNumber, reason), cause);
         this.path = path;
         this.lineNumber = lineNumber;
+        this.reason = reason;
     }
 
     public Path getPath() {
@@ -25,5 +30,21 @@ public class SaveFileCorruptedException extends IOException {
 
     public int getLineNumber() {
         return lineNumber;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    private static String message(Path path, int lineNumber, String reason) {
+        Path name = path == null ? null : path.getFileName();
+        String displayName = name == null ? "<unknown>" : name.toString();
+        return "Save file "
+            + displayName
+            + " is corrupted (line "
+            + lineNumber
+            + "): "
+            + reason
+            + ".";
     }
 }

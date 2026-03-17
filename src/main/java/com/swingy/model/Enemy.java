@@ -1,36 +1,75 @@
 package com.swingy.model;
 
-import com.swingy.model.combat.DebuffState;
+import com.swingy.model.world.Position;
 
-public class Enemy {
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.util.Objects;
+
+public final class Enemy {
+    @NotBlank(message = "Enemy name is required.")
     private final String name;
-    private final boolean unique;
-    private final int level;
-    private final int atk;
-    private final int def;
-    private final int maxHp;
-    private int currentHp;
-    private final DebuffState debuffState = new DebuffState();
 
-    public Enemy(String name, boolean unique, int level, int atk, int def, int maxHp) {
+    @Min(1)
+    private final int level;
+
+    @Min(0)
+    private final int atk;
+
+    @Min(0)
+    private final int def;
+
+    @Min(0)
+    private int currentHp;
+
+    @NotNull
+    private final Position position;
+
+    public Enemy(String name, int level, int atk, int def, int currentHp, Position position) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Enemy name is required.");
+        }
+        GameRules.requireSupportedLevel(level);
+        if (atk < 0 || def < 0 || currentHp <= 0) {
+            throw new IllegalArgumentException("Enemy statistics must be non-negative and HP positive.");
+        }
         this.name = name;
-        this.unique = unique;
         this.level = level;
         this.atk = atk;
         this.def = def;
-        this.maxHp = maxHp;
-        this.currentHp = maxHp;
+        this.currentHp = currentHp;
+        this.position = Objects.requireNonNull(position, "Enemy position is required.");
     }
 
-    public void damage(int amount) { currentHp = Math.max(0, currentHp - amount); }
-    public void heal(int amount) { currentHp = Math.min(maxHp, currentHp + amount); }
+    public void takeDamage(int damage) {
+        if (damage < 0) {
+            throw new IllegalArgumentException("Damage cannot be negative.");
+        }
+        currentHp = Math.max(0, currentHp - damage);
+    }
 
-    public String getName() { return name; }
-    public boolean isUnique() { return unique; }
-    public int getLevel() { return level; }
-    public int getAtk() { return atk; }
-    public int getDef() { return def; }
-    public int getMaxHp() { return maxHp; }
-    public int getCurrentHp() { return currentHp; }
-    public DebuffState debuffState() { return debuffState; }
+    public String getName() {
+        return name;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public int getAtk() {
+        return atk;
+    }
+
+    public int getDef() {
+        return def;
+    }
+
+    public int getCurrentHp() {
+        return currentHp;
+    }
+
+    public Position getPosition() {
+        return position;
+    }
 }

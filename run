@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+
+case "$1" in
+  build)
+    exec mise exec -- mvn clean package
+    ;;
+  test)
+    exec mise exec -- mvn test
+    ;;
+  gui)
+    exec mise exec -- mvn -Pgui clean package exec:exec@run
+    ;;
+  cli)
+    exec mise exec -- mvn clean package exec:exec@run
+    ;;
+  *)
+    printf 'Usage: %s {build|test|gui|cli}\n' "$0" >&2
+    exit 1
+    ;;
+esac

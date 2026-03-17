@@ -1,64 +1,28 @@
 package com.swingy.model;
 
-public abstract class Artifact {
-    protected final int mod;
 
-    protected Artifact(int mod) {
-        this.mod = mod;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import java.util.Objects;
+
+public record Artifact(
+    @NotNull(message = "Artifact slot is required.") Slot slot,
+    @Min(value = 0, message = "Artifact modifier cannot be negative.")
+    @Max(value = GameRules.MAX_ARTIFACT_MOD, message = "Artifact modifier is too large.") int mod
+) {
+    public enum Slot {
+        WEAPON,
+        ARMOR,
+        HELM
     }
 
-    public int mod() {
-        return mod;
-    }
-
-    public abstract String baseName(HeroClass heroClass);
-
-    public String displayName(HeroClass heroClass) {
-        return baseName(heroClass) + " +" + mod;
-    }
-
-    public static final class Weapon extends Artifact {
-        public Weapon(int mod) {
-            super(mod);
-        }
-
-        @Override
-        public String baseName(HeroClass heroClass) {
-            return switch (heroClass) {
-                case WARRIOR -> "Sword";
-                case ROGUE -> "Dagger";
-                case MAGE -> "Staff";
-            };
-        }
-    }
-
-    public static final class Armor extends Artifact {
-        public Armor(int mod) {
-            super(mod);
-        }
-
-        @Override
-        public String baseName(HeroClass heroClass) {
-            return switch (heroClass) {
-                case WARRIOR -> "Plate Armor";
-                case ROGUE -> "Leather Armor";
-                case MAGE -> "Robe";
-            };
-        }
-    }
-
-    public static final class Helm extends Artifact {
-        public Helm(int mod) {
-            super(mod);
-        }
-
-        @Override
-        public String baseName(HeroClass heroClass) {
-            return switch (heroClass) {
-                case WARRIOR -> "Steel Helm";
-                case ROGUE -> "Leather Helm";
-                case MAGE -> "Wizard Hat";
-            };
+    public Artifact {
+        Objects.requireNonNull(slot, "Artifact slot is required.");
+        if (mod < 0 || mod > GameRules.MAX_ARTIFACT_MOD) {
+            throw new IllegalArgumentException(
+                "Artifact modifier must be between 0 and " + GameRules.MAX_ARTIFACT_MOD + "."
+            );
         }
     }
 }

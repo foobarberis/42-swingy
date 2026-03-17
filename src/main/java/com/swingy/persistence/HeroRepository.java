@@ -7,7 +7,10 @@ import java.util.List;
 
 public interface HeroRepository {
     List<Hero> list() throws IOException;
-    Hero loadByName(String name) throws IOException;
+
+    Hero load(String name) throws IOException;
+
     void save(Hero hero) throws IOException;
-    void deleteByName(String name) throws IOException;
+
+    void delete(String name) throws IOException;
 }

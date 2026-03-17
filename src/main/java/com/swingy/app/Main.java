@@ -1,64 +1,63 @@
 package com.swingy.app;
 
-import com.swingy.controller.AppController;
-import com.swingy.controller.CombatController;
-import com.swingy.controller.GameController;
-import com.swingy.controller.MenuController;
-import com.swingy.model.combat.CombatResolver;
-import com.swingy.model.world.EntityPlacer;
-import com.swingy.model.world.MazeGenerator;
-import com.swingy.persistence.CsvHeroParser;
-import com.swingy.persistence.CsvHeroSerializer;
-import com.swingy.persistence.HeroCsvRepository;
+import com.swingy.controller.ApplicationController;
+import com.swingy.controller.MissionController;
+import com.swingy.logic.CombatService;
+import com.swingy.logic.EncounterService;
+import com.swingy.logic.RandomRoomFactory;
+import com.swingy.persistence.CsvStore;
 import com.swingy.persistence.HeroRepository;
-import com.swingy.util.DefaultRandomProvider;
-import com.swingy.util.RandomProvider;
 import com.swingy.view.View;
 import com.swingy.view.console.ConsoleView;
 import com.swingy.view.swing.SwingView;
-import sun.misc.Signal;
 
 import javax.validation.Validation;
 import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 import java.nio.file.Path;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Random;
 
-public class Main {
-    public static void main(String[] args) {
-        if (args.length != 1 || (!"console".equals(args[0]) && !"gui".equals(args[0]))) {
-            System.err.println("Usage: java -jar swingy.jar console|gui");
-            System.exit(1);
-        }
-
-        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-        HeroRepository repository = new HeroCsvRepository(Path.of("heroes.csv"), new CsvHeroParser(), new CsvHeroSerializer(), validator);
-        RandomProvider rng = new DefaultRandomProvider();
-
-        View view;
-        if ("console".equals(args[0])) {
-            installCtrlCNoSaveHandler();
-            view = new ConsoleView();
-        } else {
-            view = new SwingView();
-        }
-
-        MenuController menuController = new MenuController(repository, validator);
-        CombatController combatController = new CombatController(new CombatResolver(), rng);
-        GameController gameController = new GameController(new MazeGenerator(rng), new EntityPlacer(rng), combatController, repository, rng);
-        AppController appController = new AppController(view, menuController, gameController);
-        appController.run();
+public final class Main {
+    private Main() {
     }
 
-    private static void installCtrlCNoSaveHandler() {
-        AtomicBoolean fired = new AtomicBoolean(false);
+    public static void main(String[] args) {
+        int exitCode = run(args);
+        if (exitCode != 0) {
+            System.exit(exitCode);
+        }
+    }
+
+    static int run(String[] args) {
+        if (args.length != 1 || (!"console".equals(args[0]) && !"gui".equals(args[0]))) {
+            System.err.println("Usage: java -jar swingy.jar console|gui");
+            return 1;
+        }
+
+        View view;
         try {
-            Signal.handle(new Signal("INT"), signal -> {
-                if (!fired.compareAndSet(false, true)) return;
-                System.out.println("\nCtrl-C detected, quitting now. Progress will not be saved.");
-                System.out.flush();
-                System.exit(130);
-            });
-        } catch (Throwable ignored) {
+            view = "console".equals(args[0]) ? new ConsoleView() : new SwingView();
+        } catch (RuntimeException exception) {
+            System.err.println("Could not start the " + args[0] + " view: " + exception.getMessage());
+            return 1;
+        }
+
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Validator validator = factory.getValidator();
+            HeroRepository repository = new CsvStore(Path.of("heroes.csv"), validator);
+            Random random = new Random();
+            MissionController mission = new MissionController(
+                view,
+                view,
+                new RandomRoomFactory(random),
+                new EncounterService(new CombatService(), random)
+            );
+            new ApplicationController(view, view, repository, validator, mission).run();
+            return 0;
+        } catch (RuntimeException exception) {
+            view.close();
+            System.err.println("Swingy stopped unexpectedly: " + exception.getMessage());
+            return 1;
         }
     }
 }
