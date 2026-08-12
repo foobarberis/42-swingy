@@ -1,11 +1,16 @@
 # Swingy
 
+## Contents
+
+- [1. Overview](#1-overview)
+- [2. Build and run](#2-build-and-run)
+- [3. MVC architecture](#3-mvc-architecture)
+- [4. Gameplay and formulas](#4-gameplay-and-formulas)
+- [5. Persistence](#5-persistence)
+
 ## 1. Overview
 
-Swingy is a Java 17 turn-based RPG with two launch modes:
-
-- a terminal-based console interface;
-- a Swing graphical interface.
+Swingy is a Java 17 turn-based RPG with terminal console and Swing GUI modes.
 
 The core loop is:
 
@@ -21,11 +26,7 @@ A mission starts at the center of a new map. Maps and encounters are generated f
 
 ## 2. Build and run
 
-Requirements:
-
-- Java 17
-- Maven
-- `mise` when using `swingy.sh`
+Requirements: Java 17, Maven, and `mise` when using `swingy.sh`.
 
 ### Maven
 
@@ -54,8 +55,6 @@ The wrapper runs Maven and Java through `mise`:
 ./swingy.sh cli
 ./swingy.sh gui
 ```
-
-Build before using `cli` or `gui`.
 
 ### Basic controls
 
