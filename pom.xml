@@ -9,7 +9,6 @@
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <run.mode>console</run.mode>
   </properties>
 
   <dependencies>
@@ -88,39 +87,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
       </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.5.0</version>
-        <executions>
-          <execution>
-            <id>run</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${java.home}/bin/java</executable>
-              <inheritIo>true</inheritIo>
-              <arguments>
-                <argument>-Dswing.aatext=true</argument>
-                <argument>-Dawt.useSystemAAFontSettings=on</argument>
-                <argument>-jar</argument>
-                <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
-                <argument>${run.mode}</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>gui</id>
-      <properties>
-        <run.mode>gui</run.mode>
-      </properties>
-    </profile>
-  </profiles>
 </project>
