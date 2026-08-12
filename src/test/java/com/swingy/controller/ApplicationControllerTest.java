@@ -61,7 +61,7 @@ class ApplicationControllerTest {
     }
 
     @Test
-    void missionVictorySavesHeroWithoutHealingAndReturnsToMenu() throws Exception {
+    void missionVictorySavesFullyHealedHeroAndReturnsToMenu() throws Exception {
         CsvStore repository = store();
         repository.save(
             Hero.builder("Alice", HeroClass.WARRIOR).currentHp(50).build()
@@ -70,7 +70,7 @@ class ApplicationControllerTest {
 
         application(view, repository, openRoom(), repositoryRandom()).run();
 
-        assertEquals(50, repository.load("Alice").getCurrentHp());
+        assertEquals(125, repository.load("Alice").getCurrentHp());
         assertTrue(view.outputs().contains("Progress saved."));
         assertTrue(
             outputAfter(view.outputs(), "Victory! You reached the border.", "STATUS:Main menu")

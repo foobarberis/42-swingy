@@ -28,12 +28,15 @@ class MissionTest {
     }
 
     @Test
-    void missionReportsBlockedAndWinningMoves() {
-        Hero hero = Hero.createNew("Alice", HeroClass.WARRIOR);
+    void missionReportsBlockedMovesAndHealsTheHeroOnVictory() {
+        Hero hero = Hero.builder("Alice", HeroClass.WARRIOR)
+            .currentHp(50)
+            .build();
         Mission mission = new Mission(hero, new Room(5, new Position(2, 2)));
 
         assertEquals(Mission.MoveResult.Type.MOVED, mission.move(Direction.NORTH).type());
         assertEquals(Mission.MoveResult.Type.WON, mission.move(Direction.NORTH).type());
+        assertEquals(hero.getMaxHp(), hero.getCurrentHp());
         assertEquals(Mission.MoveResult.Type.BLOCKED, mission.move(Direction.NORTH).type());
     }
 }

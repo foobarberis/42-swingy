@@ -216,7 +216,7 @@ Hero
 1. `MissionController.play(hero)` asks the room factory for a new room and creates a `Mission`. The mission places the hero at the exact center.
 2. Each iteration renders current hero statistics and the complete map, then waits for input.
 3. A direction calls `Mission.move`. Invalid commands and outside-map moves leave the model position unchanged.
-4. Reaching any border ends the mission immediately with victory. The border is always visible as `*`; the hero is `@`, enemies are `M`, and empty interior cells are `.`.
+4. Reaching any border ends the mission immediately with victory and restores the hero to maximum HP. The border is always visible as `*`; the hero is `@`, enemies are `M`, and empty interior cells are `.`.
 5. Entering an empty interior cell begins the next iteration. Entering an occupied cell opens the encounter loop.
 6. An encounter accepts only fight or run. A successful escape restores the position before the attempted move; a failed escape continues immediately into combat.
 7. Hero death ends the mission. Enemy victory removes that enemy from the room, grants XP, and may prompt for an artifact. The mission then continues from the enemy's former cell.
@@ -225,7 +225,7 @@ Hero
 
 | Mission result | `ApplicationController` action |
 | --- | --- |
-| Reached a border (`WON`) | Save the living hero and return to the menu. Winning does not heal the hero. |
+| Reached a border (`WON`) | Save the fully healed hero and return to the menu. |
 | Hero HP reached zero (`HERO_DIED`) | Delete the hero from the repository and return to the menu. |
 | Quit, EOF, GUI closure, or input failure during a mission (`EXIT_APPLICATION`) | Attempt to save the living hero, show whether saving succeeded, then exit. |
 
@@ -237,7 +237,7 @@ Hero
 - The player may fight or try to run from an enemy. A successful escape returns the hero to the cell occupied before the attempted move.
 - The hero attacks first. A dead enemy cannot retaliate in the same round.
 - Defeating an enemy grants XP and may drop an artifact. Replaced or refused artifacts are discarded.
-- Winning a mission does not heal the hero.
+- Winning a mission heals the hero to their effective maximum HP.
 
 ## Formulas
 

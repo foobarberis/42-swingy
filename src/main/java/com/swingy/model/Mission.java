@@ -28,6 +28,7 @@ public final class Mission {
         previousPosition = heroPosition;
         heroPosition = destination;
         if (room.isBorder(destination)) {
+            hero.healToFull();
             return MoveResult.won();
         }
 

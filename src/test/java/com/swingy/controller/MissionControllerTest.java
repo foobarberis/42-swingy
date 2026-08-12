@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MissionControllerTest {
     @Test
-    void reachingAnyBorderWinsWithoutAutomaticallyHealingHero() {
+    void reachingAnyBorderWinsAndHealsHeroToFull() {
         Hero hero = Hero.builder("Alice", HeroClass.WARRIOR)
             .currentHp(50)
             .build();
@@ -28,7 +28,7 @@ class MissionControllerTest {
         MissionResult result = play(view, hero, openRoom(5), random());
 
         assertEquals(MissionResult.Type.WON, result.type());
-        assertEquals(50, hero.getCurrentHp());
+        assertEquals(hero.getMaxHp(), hero.getCurrentHp());
         assertTrue(view.outputs().contains("Victory! You reached the border."));
     }
 

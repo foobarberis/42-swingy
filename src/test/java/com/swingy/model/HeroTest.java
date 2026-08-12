@@ -87,6 +87,19 @@ class HeroTest {
     }
 
     @Test
+    void healingToFullUsesTheEffectiveMaximumHitPoints() {
+        Hero hero = Hero.builder("Alice", HeroClass.WARRIOR)
+            .currentHp(50)
+            .helmMod(2)
+            .build();
+
+        hero.healToFull();
+
+        assertEquals(145, hero.getCurrentHp());
+        assertEquals(hero.getMaxHp(), hero.getCurrentHp());
+    }
+
+    @Test
     void everyArtifactSlotChangesItsRequiredStatistic() {
         Hero hero = Hero.createNew("Alice", HeroClass.WARRIOR);
 
