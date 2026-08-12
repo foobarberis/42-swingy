@@ -6,37 +6,31 @@ import com.swingy.model.world.Room;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class MissionTest {
     @Test
-    void missionOwnsMovementEncounterAndRetreatState() {
-        Hero hero = Hero.createNew("Alice", HeroClass.WARRIOR);
-        Room room = new Room(5, new Position(2, 2));
-        Enemy enemy = new Enemy("Goblin", 1, 10, 10, 60, new Position(3, 2));
-        room.addEnemy(enemy);
-        Mission mission = new Mission(hero, room);
+    void missionStartsAtCenterFindsEnemiesAndRetreats() {
+        Room room = new Room(9);
+        Enemy enemy = new Enemy(EnemyType.ORC, 1);
+        room.addEnemy(new Position(5, 4), enemy);
+        Mission mission = new Mission(Hero.createNew("H", HeroClass.WARRIOR), room);
 
-        Mission.MoveResult encounter = mission.move(Direction.EAST);
-
-        assertEquals(Mission.MoveResult.Type.ENCOUNTER, encounter.type());
-        assertEquals(enemy, encounter.enemy());
-        assertEquals(new Position(3, 2), mission.getHeroPosition());
-
+        assertEquals(room.center(), mission.getHeroPosition());
+        assertSame(enemy, mission.move(Direction.EAST).enemy());
         mission.retreat();
-
-        assertEquals(new Position(2, 2), mission.getHeroPosition());
+        assertEquals(room.center(), mission.getHeroPosition());
     }
 
     @Test
-    void missionReportsBlockedMovesAndHealsTheHeroOnVictory() {
-        Hero hero = Hero.builder("Alice", HeroClass.WARRIOR)
-            .currentHp(50)
-            .build();
-        Mission mission = new Mission(hero, new Room(5, new Position(2, 2)));
-
-        assertEquals(Mission.MoveResult.Type.MOVED, mission.move(Direction.NORTH).type());
+    void borderVictoryDoesNotHeal() {
+        Hero hero = Hero.createNew("H", HeroClass.WARRIOR);
+        hero.takeDamage(7);
+        Mission mission = new Mission(hero, new Room(9));
+        for (int step = 0; step < 3; step++) {
+            assertEquals(Mission.MoveResult.Type.MOVED, mission.move(Direction.NORTH).type());
+        }
         assertEquals(Mission.MoveResult.Type.WON, mission.move(Direction.NORTH).type());
-        assertEquals(hero.getMaxHp(), hero.getCurrentHp());
-        assertEquals(Mission.MoveResult.Type.BLOCKED, mission.move(Direction.NORTH).type());
+        assertEquals(11, hero.getCurrentHp());
     }
 }

@@ -3,11 +3,8 @@ package com.swingy.controller;
 import com.swingy.model.Hero;
 import com.swingy.model.HeroClass;
 import com.swingy.persistence.HeroRepository;
-import com.swingy.view.ExitReport;
-import com.swingy.view.GameView;
-import com.swingy.view.InputPort;
-import com.swingy.view.RepositoryAction;
-import com.swingy.view.ViewInput;
+import com.swingy.view.View;
+import com.swingy.view.ViewFormatter;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
@@ -17,22 +14,19 @@ import java.util.Locale;
 import java.util.Objects;
 
 public final class ApplicationController {
-    private final InputPort input;
-    private final GameView view;
+    private static final String MENU = "Available commands: list, create warrior|rogue|mage <name>, load <name>, quit.";
+
+    private final View view;
     private final HeroRepository repository;
     private final Validator validator;
     private final MissionController mission;
 
-    private boolean listOnMenuEntry = true;
-
     public ApplicationController(
-        InputPort input,
-        GameView view,
+        View view,
         HeroRepository repository,
         Validator validator,
         MissionController mission
     ) {
-        this.input = Objects.requireNonNull(input, "Input is required.");
         this.view = Objects.requireNonNull(view, "View is required.");
         this.repository = Objects.requireNonNull(repository, "Hero repository is required.");
         this.validator = Objects.requireNonNull(validator, "Validator is required.");
@@ -41,29 +35,17 @@ public final class ApplicationController {
 
     public void run() {
         try {
-            view.showWelcome();
-            boolean exit = false;
-            while (!exit) {
-                view.renderMenu();
-                if (listOnMenuEntry) {
-                    listHeroes();
-                    listOnMenuEntry = false;
+            view.show("Welcome to Swingy! " + MENU);
+            while (true) {
+                String input = view.readInput();
+                if (input == null || "quit".equals(input.trim().toLowerCase(Locale.ROOT))) {
+                    view.show("Goodbye!");
+                    return;
                 }
-
-                ViewInput nextInput = input.readInput();
-                if (nextInput.type() != ViewInput.Type.LINE) {
-                    view.showExit(exitReport(nextInput, ExitReport.SaveState.NOT_REQUIRED, null));
-                    break;
+                String line = input.trim();
+                if (!line.isEmpty() && handleMenuCommand(line)) {
+                    return;
                 }
-                String line = nextInput.line().trim();
-                if (line.isEmpty()) {
-                    continue;
-                }
-                if ("quit".equals(line.toLowerCase(Locale.ROOT))) {
-                    view.showExit(exitReport(nextInput, ExitReport.SaveState.NOT_REQUIRED, null));
-                    break;
-                }
-                exit = handleMenuCommand(line);
             }
         } finally {
             view.close();
@@ -75,7 +57,7 @@ public final class ApplicationController {
         return switch (parts[0].toLowerCase(Locale.ROOT)) {
             case "list" -> {
                 if (parts.length != 1) {
-                    view.showListUsage();
+                    view.show("Usage: list");
                 } else {
                     listHeroes();
                 }
@@ -84,7 +66,7 @@ public final class ApplicationController {
             case "create" -> createHero(parts);
             case "load" -> loadHero(parts);
             default -> {
-                view.showUnknownMenuCommand();
+                view.show("Unknown command. " + MENU);
                 yield false;
             }
         };
@@ -94,71 +76,61 @@ public final class ApplicationController {
         try {
             List<Hero> heroes = repository.list();
             if (heroes.isEmpty()) {
-                view.showNoHeroes();
-                return;
-            }
-            for (Hero hero : heroes) {
-                view.renderHeroSummary(hero);
+                view.show("No heroes available.");
+            } else {
+                heroes.forEach(hero -> view.show(ViewFormatter.heroStatus(hero)));
             }
         } catch (IOException exception) {
-            view.showRepositoryFailure(RepositoryAction.LIST, null, exception.getMessage());
+            view.show("Could not list saved heroes: " + detail(exception));
         }
     }
 
     private boolean createHero(String[] parts) {
         if (parts.length != 3) {
-            view.showCreateUsage();
+            view.show("Usage: create warrior|rogue|mage <name>");
             return false;
         }
 
         HeroClass heroClass = HeroClass.fromCreateToken(parts[1].toLowerCase(Locale.ROOT));
         if (heroClass == null) {
-            view.showUnknownHeroClass();
+            view.show("Unknown hero class. Choose warrior, rogue, or mage.");
             return false;
         }
 
-        Hero hero;
-        try {
-            hero = Hero.createNew(parts[2], heroClass);
-        } catch (IllegalArgumentException exception) {
-            view.showValidationErrors(List.of(exception.getMessage()));
-            return false;
-        }
-        List<String> validationErrors = validator.validate(hero).stream()
+        Hero hero = Hero.createNew(parts[2], heroClass);
+        List<String> errors = validator.validate(hero).stream()
             .map(ConstraintViolation::getMessage)
             .sorted()
             .toList();
-        if (!validationErrors.isEmpty()) {
-            view.showValidationErrors(validationErrors);
+        if (!errors.isEmpty()) {
+            errors.forEach(error -> view.show("Validation failed: " + error));
             return false;
         }
 
-        List<Hero> existingHeroes;
+        List<Hero> existing;
         try {
-            existingHeroes = repository.list();
+            existing = repository.list();
         } catch (IOException exception) {
-            view.showRepositoryFailure(RepositoryAction.LIST, null, exception.getMessage());
+            view.show("Could not list saved heroes: " + detail(exception));
             return false;
         }
-        for (Hero existing : existingHeroes) {
-            if (existing.getName().equals(hero.getName())) {
-                view.showDuplicateName();
-                return false;
-            }
+        if (existing.stream().anyMatch(saved -> saved.getName().equals(hero.getName()))) {
+            view.show("A character with that name already exists. Pick another name.");
+            return false;
         }
+
         try {
             repository.save(hero);
         } catch (IOException exception) {
-            view.showRepositoryFailure(RepositoryAction.SAVE, hero.getName(), exception.getMessage());
+            view.show("Could not save hero '" + hero.getName() + "': " + detail(exception));
             return false;
         }
-
         return finishMission(hero, mission.play(hero));
     }
 
     private boolean loadHero(String[] parts) {
         if (parts.length != 2) {
-            view.showLoadUsage();
+            view.show("Usage: load <name>");
             return false;
         }
 
@@ -166,70 +138,47 @@ public final class ApplicationController {
         try {
             hero = repository.load(parts[1]);
         } catch (IOException exception) {
-            view.showRepositoryFailure(RepositoryAction.LOAD, parts[1], exception.getMessage());
+            view.show("Could not load hero '" + parts[1] + "': " + detail(exception));
             return false;
         }
         return finishMission(hero, mission.play(hero));
     }
 
-    private boolean finishMission(Hero hero, MissionResult result) {
-        listOnMenuEntry = true;
-        return switch (result.type()) {
+    private boolean finishMission(Hero hero, MissionController.Result result) {
+        return switch (result) {
             case WON -> {
                 try {
                     repository.save(hero);
-                    view.showProgressSaved();
+                    view.show("Progress saved.");
                 } catch (IOException exception) {
-                    view.showRepositoryFailure(
-                        RepositoryAction.SAVE,
-                        hero.getName(),
-                        exception.getMessage()
-                    );
+                    view.show("Could not save hero '" + hero.getName() + "': " + detail(exception));
                 }
                 yield false;
             }
             case HERO_DIED -> {
-                view.showHeroDied();
+                view.show("You died.");
                 try {
                     repository.delete(hero.getName());
-                    view.showHeroDeleted();
+                    view.show("Your hero has been removed.");
                 } catch (IOException exception) {
-                    view.showRepositoryFailure(
-                        RepositoryAction.DELETE,
-                        hero.getName(),
-                        exception.getMessage()
-                    );
+                    view.show("Could not remove hero '" + hero.getName() + "': " + detail(exception));
                 }
                 yield false;
             }
             case EXIT_APPLICATION -> {
-                ExitReport.SaveState saveState;
-                String saveFailure = null;
                 try {
                     repository.save(hero);
-                    saveState = ExitReport.SaveState.SAVED;
+                    view.show("Your progress has been saved. Goodbye!");
                 } catch (IOException exception) {
-                    saveState = ExitReport.SaveState.FAILED;
-                    saveFailure = exception.getMessage();
+                    view.show("Your progress could not be saved: " + detail(exception));
                 }
-                view.showExit(exitReport(result.exitInput(), saveState, saveFailure));
                 yield true;
             }
         };
     }
 
-    private ExitReport exitReport(
-        ViewInput input,
-        ExitReport.SaveState saveState,
-        String saveFailure
-    ) {
-        ExitReport.Reason reason = switch (input.type()) {
-            case LINE -> ExitReport.Reason.QUIT;
-            case END_OF_INPUT -> ExitReport.Reason.END_OF_INPUT;
-            case VIEW_CLOSED -> ExitReport.Reason.VIEW_CLOSED;
-            case FAILURE -> ExitReport.Reason.INPUT_FAILURE;
-        };
-        String inputFailure = input.failure();
-        return new ExitReport(reason, saveState, inputFailure, saveFailure);
+    private String detail(IOException exception) {
+        String message = exception.getMessage();
+        return message == null || message.isBlank() ? "unknown error" : message;
     }
 }

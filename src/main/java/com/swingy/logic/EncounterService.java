@@ -2,59 +2,59 @@ package com.swingy.logic;
 
 import com.swingy.model.Artifact;
 import com.swingy.model.Enemy;
-import com.swingy.model.GameRules;
+import com.swingy.model.Hero;
 import com.swingy.model.Mission;
 
 import java.util.Objects;
 import java.util.Random;
 
 public final class EncounterService {
-    public static final double RUN_SUCCESS_CHANCE = 0.5;
-    public static final double ARTIFACT_DROP_CHANCE = 0.35;
-
-    private final CombatService combat;
     private final Random random;
 
-    public EncounterService(CombatService combat, Random random) {
-        this.combat = Objects.requireNonNull(combat, "Combat service is required.");
+    public EncounterService(Random random) {
         this.random = Objects.requireNonNull(random, "Random source is required.");
     }
 
-    public EncounterResult resolve(Mission mission, Enemy enemy, EncounterAction action) {
-        Objects.requireNonNull(mission, "Mission is required.");
-        Objects.requireNonNull(enemy, "Enemy is required.");
-        Objects.requireNonNull(action, "Encounter action is required.");
+    public EncounterResult fight(Mission mission, Enemy enemy) {
+        requireEncounter(mission, enemy);
+        return combat(mission, enemy, false);
+    }
 
-        boolean escapeFailed = false;
-        if (action == EncounterAction.RUN) {
-            if (random.nextDouble() < RUN_SUCCESS_CHANCE) {
-                mission.retreat();
-                return EncounterResult.escaped();
+    public EncounterResult run(Mission mission, Enemy enemy) {
+        requireEncounter(mission, enemy);
+        if (random.nextBoolean()) {
+            mission.retreat();
+            return EncounterResult.escaped();
+        }
+        return combat(mission, enemy, true);
+    }
+
+    private EncounterResult combat(Mission mission, Enemy enemy, boolean escapeFailed) {
+        Hero hero = mission.getHero();
+        while (hero.getCurrentHp() > 0 && enemy.getCurrentHp() > 0) {
+            enemy.takeDamage(Math.max(1, hero.getAttack() - enemy.getDefense()));
+            if (enemy.getCurrentHp() > 0) {
+                hero.takeDamage(Math.max(1, enemy.getAttack() - hero.getDefense()));
             }
-            escapeFailed = true;
         }
 
-        CombatResult combatResult = combat.fight(mission.getHero(), enemy);
-        if (!combatResult.heroWon()) {
-            return EncounterResult.heroDied(escapeFailed, combatResult);
+        if (hero.getCurrentHp() == 0) {
+            return EncounterResult.heroDied(escapeFailed);
         }
 
-        mission.getRoom().removeEnemy(enemy);
-        long xpReward = GameRules.xpReward(enemy.getLevel());
+        mission.getRoom().removeEnemy(mission.getHeroPosition());
+        long xpReward = enemy.getLevel() * 100L;
         int levelsGained = 0;
         String xpFailure = null;
         try {
-            levelsGained = mission.getHero().gainExperience(xpReward);
-        } catch (ArithmeticException | IllegalStateException exception) {
+            levelsGained = hero.gainExperience(xpReward);
+        } catch (IllegalStateException exception) {
             xpFailure = exception.getMessage();
         }
 
-        Artifact artifact = random.nextDouble() < ARTIFACT_DROP_CHANCE
-            ? createArtifact(enemy)
-            : null;
+        Artifact artifact = random.nextBoolean() ? createArtifact(enemy) : null;
         return EncounterResult.enemyDefeated(
             escapeFailed,
-            combatResult,
             xpReward,
             levelsGained,
             xpFailure,
@@ -68,6 +68,11 @@ public final class EncounterService {
             case 1 -> Artifact.Slot.ARMOR;
             default -> Artifact.Slot.HELM;
         };
-        return new Artifact(slot, Math.max(0, enemy.getLevel() - 1));
+        return new Artifact(slot, enemy.getLevel());
+    }
+
+    private void requireEncounter(Mission mission, Enemy enemy) {
+        Objects.requireNonNull(mission, "Mission is required.");
+        Objects.requireNonNull(enemy, "Enemy is required.");
     }
 }

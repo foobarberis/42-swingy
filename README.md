@@ -1,405 +1,250 @@
 # Swingy
 
-Swingy is a Java 17 turn-based RPG with a terminal UI and a Swing GUI, selected at launch. The player creates or loads a hero, explores a generated square map, fights or escapes enemies, gains XP and equipment, and wins a mission by reaching a map border.
+## 1. Overview
 
-The application follows **strict passive MVC**. Models own game state and rules and do not depend on controllers, views, or persistence. Controllers translate user input into model and service calls, then select what to render. Views are passive: they render state supplied by controllers and return `ViewInput`; they never change game state or access persistence. CSV storage is an infrastructure adapter behind a repository interface.
+Swingy is a Java 17 turn-based RPG with two launch modes:
 
-## Requirements
+- a terminal-based console interface;
+- a Swing graphical interface.
 
-- OpenJDK 17
-- Maven 3.9 or later
+The core loop is:
 
-Hibernate Validator and its EL implementation are the only non-JDK runtime libraries.
+```text
+create or load a hero
+  → explore a generated map
+  → fight or run from enemies
+  → reach any map border to win
+  → persist the hero
+```
 
-## Build and run
+A mission starts at the center of a new map. Maps and encounters are generated from the hero's current level.
+
+## 2. Build and run
+
+Requirements:
+
+- Java 17
+- Maven
+- `mise` when using `swingy.sh`
+
+### Maven
+
+Run the tests and build the executable JAR:
 
 ```bash
 mvn clean test
 mvn clean package
+```
 
+Launch either interface from the project root:
+
+```bash
 java -jar target/swingy.jar console
 java -jar target/swingy.jar gui
 ```
 
-With `mise` installed, use the project wrapper:
+### Project wrapper
+
+The wrapper runs Maven and Java through `mise`:
 
 ```bash
-mise install
-./swingy.sh test
 ./swingy.sh clean
+./swingy.sh test
 ./swingy.sh build
 ./swingy.sh cli
 ./swingy.sh gui
 ```
 
-## Commands
+Build before using `cli` or `gui`.
 
-The main menu accepts:
+### Basic controls
 
-```text
-list
-create warrior|rogue|mage <name>
-load <name>
-quit
-```
-
-During a mission, move with `north`, `east`, `south`, or `west`. The aliases `n`, `e`, `s`, and `w` are also accepted. Encounters accept `fight`/`f` or `run`/`r`. `quit` exits from the menu, mission, encounter, or artifact prompt.
-
-Hero names must contain 1–16 letters, digits, underscores, or hyphens. Names are unique and case-sensitive in the save file.
-
-## Architecture and responsibilities
-
-`Main` is the composition root. It validates the launch mode, constructs the selected view, validator, CSV repository, shared random source, services, and controllers, then starts `ApplicationController`.
-
-```text
-                         ┌─────────────────────┐
-                         │ Main                │
-                         │ composition root    │
-                         └──────────┬──────────┘
-                                    │
-       ┌────────────────────────────┼───────────────────────────┐
-       │                            │                           │
-┌──────▼────────────────┐  ┌────────▼─────────┐      ┌──────────▼─────────┐
-│ ApplicationController │  │ View             │      │ HeroRepository     │
-│ menu and save policy  │◄─┤ ConsoleView      │      │ CsvStore           │
-└──────────┬────────────┘  │ SwingView        │      └────────────────────┘
-           │               └──────────────────┘
-┌──────────▼────────────┐
-│ MissionController     │
-│ mission interaction   │
-└───────┬────────┬──────┘
-        │        │
-┌───────▼───┐ ┌──▼─────────────────────┐
-│ services  │ │ model                  │
-│ room,     │ │ Mission, Hero, Room,   │
-│ encounter │ │ Enemy, Artifact, ...   │
-└───────────┘ └────────────────────────┘
-```
-
-### Application and controllers
-
-- **`com.swingy.app.Main`** selects `console` or `gui`, creates all dependencies, and handles unrecoverable startup/runtime failures. Console and GUI are selected only at launch; runtime view switching is not implemented.
-- **`ApplicationController`** owns the application loop. It renders the menu, parses `list`, `create`, `load`, and `quit`, validates new heroes, rejects duplicate names, calls the repository, starts missions, and applies the resulting save/delete/exit policy.
-- **`MissionController`** owns the mission interaction loop, not mission state or rules. It translates movement and encounter input into domain calls, selects the messages to render, and returns a `MissionResult` to `ApplicationController`.
-- **`MissionResult`** is a small immutable result object with three outcomes: `WON`, `HERO_DIED`, or `EXIT_APPLICATION`. It prevents the mission controller from deciding how heroes are persisted.
-
-### Model
-
-The model holds validated game state and behavior.
-
-- **`Hero`** is the mutable player state: immutable name/class plus level, cumulative XP, current HP, and one modifier for each equipment slot. It creates/copies heroes, applies damage, levels from XP, calculates effective statistics, and equips artifacts.
-- **`Mission`** owns all mutable state for one playthrough: the hero, generated room, current position, and previous position used when an escape succeeds. Its `move` operation returns a domain result instead of allowing controllers to manipulate coordinates directly.
-- **`HeroClass`** is an enum containing the base HP, attack, and defense for `WARRIOR`, `ROGUE`, and `MAGE`.
-- **`Enemy`** is a mutable combatant with immutable identity, statistics, and map position, plus mutable current HP.
-- **`Artifact`** is an immutable record containing a fixed `Slot` (`WEAPON`, `ARMOR`, or `HELM`) and a modifier.
-- **`Room`** represents a square mission map. It validates its odd size and center start, owns enemies, and answers bounds, border, interior, and occupancy queries.
-- **`Position`** is an immutable `(x, y)` coordinate record. **`Direction`** is an enum that parses movement commands and produces the next position.
-
-Bean Validation annotations protect persisted hero state. Constructors and methods also enforce immediate invariants such as valid levels, non-negative damage, unique enemy positions, and valid artifact modifiers.
-
-### Game logic and persistence
-
-- **`GameRules`** is part of the domain model and contains formulas and limits: map size, XP thresholds, artifact effects, and the supported level range of 1–100. `GameLogic` remains as a compatibility façade for its former API.
-- **`RandomRoomFactory`** creates a room whose size and enemy statistics scale with the hero level. `RoomFactory` is its narrow interface, allowing tests or future map generators to substitute it.
-- **`CombatService`** resolves a complete fight and returns its round-by-round history in a `CombatResult`. **`EncounterService`** owns run probability, combat resolution, XP rewards, artifact drops, defeated-enemy removal, and the resulting `EncounterResult`.
-- **`HeroRepository`** defines `list`, `load`, `save`, and `delete` without exposing a storage format. **`CsvStore`** is the implementation backed by `heroes.csv`.
-
-### View
-
-The UI boundary is split in two. `InputPort` returns input as `ViewInput`; `GameView` exposes presentation methods for menus, maps, combat, errors, and exit reports. `View` combines both for concrete frontends and application wiring. Controllers depend on the two narrow roles separately.
-
-- **`ConsoleView`** reads UTF-8 lines with a `BufferedReader` and writes to a `PrintStream`.
-- **`SwingView`** renders a frame with status, log, and input fields. Swing event handlers enqueue submitted lines; the controller waits for them without running game logic on Swing's event-dispatch thread.
-- **`SwingInputQueue`** uses a blocking queue and a close sentinel to safely pass GUI input or window closure to the controller.
-- **`ViewFormatter`** is shared presentation logic. It converts model state and result records into hero status, map, combat, artifact, repository-error, and exit text.
-- **`ViewInput`** distinguishes a normal line from end of console input, GUI closure, and input failure. This lets both interfaces request a clean exit through the same controller path.
-
-## Data structures and design choices
-
-| Structure | Where | Why it is used |
-| --- | --- | --- |
-| Immutable records | `Position`, `Artifact`, `CombatRound`, `CombatResult`, `MissionResult`, `ViewInput`, `ExitReport` | These are value-like messages or coordinates. Value equality makes positions usable in sets and avoids accidental mutation of result data. `CombatResult` copies its rounds list so callers cannot alter the transcript. |
-| Enums | `HeroClass`, `Direction`, `Artifact.Slot`, result/input/action types | The valid alternatives are fixed. Enums make command/result branches exhaustive and avoid invalid string states inside the program. |
-| `ArrayList<Enemy>` | `Room.enemies` | A room owns a mutable ordered collection: enemies are added during generation and removed after defeat. `enemyAt` scans it, which keeps the room representation simple. |
-| `ArrayList<Position>` plus shuffle | `RandomRoomFactory` | The factory first collects every valid interior cell except the start, shuffles with the shared `Random`, then takes the required prefix. This samples without replacement, so enemy positions are guaranteed unique without retry loops. |
-| `HashSet<Position>` | `ViewFormatter.map` | Map rendering converts the enemy list to a set once, then checks each cell efficiently while constructing the text map. |
-| `ArrayList<CombatRound>` | `CombatService` | Combat appends one immutable snapshot per round. The view can render what happened after combat completes rather than mixing display code into combat rules. |
-| Three integer equipment fields | `Hero.weaponMod`, `armorMod`, `helmMod` | The game has exactly three slots, so fixed fields are clearer and easier to persist than a general map. `-1` means an empty slot; a non-negative value reconstructs an `Artifact`. |
-| `List<Hero>` and `HashSet<String>` | `CsvStore` | Rows are read into a list to support replacement or deletion before rewriting the complete file. The set detects duplicate hero names while parsing. |
-| `LinkedBlockingQueue<Object>` | `SwingInputQueue` | It safely bridges asynchronous Swing events and the controller's blocking `readInput` call. A private sentinel represents window closure. |
-
-The CSV parser splits each row into exactly eight columns. Names cannot contain commas because the hero-name validation forbids them, so quoting and CSV escaping are unnecessary for this format.
-
-## Data flow
-
-### User input to display
-
-```text
-player
-  → ConsoleView / SwingView
-  → ViewInput
-  → ApplicationController or MissionController
-  → model, service, or repository operation
-  → changed model state or immutable result
-  → ViewFormatter / View
-  → console output or Swing widgets
-```
-
-The controller is the decision point. A view never modifies a hero or repository directly; it reports input and renders what the controller asks it to render.
-
-### Hero creation and loading
-
-```text
-create command
-  → ApplicationController parses class and name
-  → Hero.createNew
-  → Bean Validation
-  → repository.list checks duplicate name
-  → repository.save
-  → MissionController.play
-
-load command
-  → CsvStore reads every row strictly
-  → parse fields → Hero.Builder → Bean Validation
-  → selected Hero
-  → MissionController.play
-```
-
-A newly created hero is saved *before* its first mission starts. `CsvStore.save` copies the hero into its in-memory list, then serializes all heroes. `load` returns a reconstructed hero rather than a direct reference to stored state.
-
-### Mission data flow
-
-```text
-Hero
-  → RandomRoomFactory.create(hero)
-  → Room: size, center start, generated enemies
-  → Mission owns hero Position and previous Position
-  → render Hero + Room
-  → movement input
-       ├─ outside map: reject move
-       ├─ border: MissionResult.WON
-       ├─ empty interior: next turn
-       └─ enemy: encounter
-                    ├─ successful run: Mission restores previous Position
-                    ├─ failed run / fight: EncounterService → CombatService
-                    │    → mutate Hero and Enemy HP
-                    │    → CombatResult with CombatRound history
-                    └─ victory: EncounterService grants XP, creates optional Artifact, and removes enemy
-```
-
-The room, enemy collection, and hero position are mission-local. They are discarded when `play` returns. Only the hero's persistent fields survive to the next program run.
-
-### Persistence data flow
-
-```text
-Hero
-  → validate
-  → name,class,level,xp,currentHp,weaponMod,armorMod,helmMod
-  → temporary CSV file
-  → atomic replacement of heroes.csv when supported
-```
-
-`CsvStore` validates on both boundaries: before saving a hero and after rebuilding one from a row. It rejects blank rows, wrong column counts, invalid numbers/classes, duplicate names, and hero states that violate constraints. It writes a temporary file in the save file's directory, then replaces `heroes.csv` atomically when the filesystem supports it; otherwise it falls back to replacement. Temporary files are cleaned up after success or failure.
-
-## Execution flow
-
-### Startup and menu loop
-
-1. `Main.main` calls `run(args)`. The only valid arguments are `console` and `gui`; another argument prints usage and returns a non-zero exit code.
-2. `Main` creates the selected `View`. It then creates the Bean `Validator`, `CsvStore` for `heroes.csv`, one `Random`, `RandomRoomFactory`, `CombatService`, `MissionController`, and `ApplicationController`.
-3. `ApplicationController.run` displays the welcome message. On the first menu entry, and again after every completed mission, it lists saved heroes.
-4. The controller reads `ViewInput`. EOF, GUI closure, input failure, or `quit` at the menu produces an exit report and closes the view.
-5. `list` reads and renders saved heroes. `create` validates and saves a hero before entering a mission. `load` reads a named hero and enters a mission. Repository failures are reported as failures and never shown as successful actions.
-
-### Mission loop
-
-1. `MissionController.play(hero)` asks the room factory for a new room and creates a `Mission`. The mission places the hero at the exact center.
-2. Each iteration renders current hero statistics and the complete map, then waits for input.
-3. A direction calls `Mission.move`. Invalid commands and outside-map moves leave the model position unchanged.
-4. Reaching any border ends the mission immediately with victory and restores the hero to maximum HP. The border is always visible as `*`; the hero is `@`, enemies are `M`, and empty interior cells are `.`.
-5. Entering an empty interior cell begins the next iteration. Entering an occupied cell opens the encounter loop.
-6. An encounter accepts only fight or run. A successful escape restores the position before the attempted move; a failed escape continues immediately into combat.
-7. Hero death ends the mission. Enemy victory removes that enemy from the room, grants XP, and may prompt for an artifact. The mission then continues from the enemy's former cell.
-
-### Mission outcome and persistence
-
-| Mission result | `ApplicationController` action |
+| Context | Commands |
 | --- | --- |
-| Reached a border (`WON`) | Save the fully healed hero and return to the menu. |
-| Hero HP reached zero (`HERO_DIED`) | Delete the hero from the repository and return to the menu. |
-| Quit, EOF, GUI closure, or input failure during a mission (`EXIT_APPLICATION`) | Attempt to save the living hero, show whether saving succeeded, then exit. |
+| Main menu | `list`, `create warrior\|rogue\|mage <name>`, `load <name>`, `quit` |
+| Exploration | `north`, `east`, `south`, `west` or `n`, `e`, `s`, `w` |
+| Encounter | `fight` / `f`, `run` / `r` |
 
-`ApplicationController` closes the view in a `finally` block. The GUI disposes its frame without calling `System.exit`; the console process exits naturally unless startup returns a non-zero code.
+## 3. MVC architecture
 
-## Gameplay rules
+### What MVC means
 
-- The hero starts at the map center and wins by reaching any border.
-- The player may fight or try to run from an enemy. A successful escape returns the hero to the cell occupied before the attempted move.
-- The hero attacks first. A dead enemy cannot retaliate in the same round.
-- Defeating an enemy grants XP and may drop an artifact. Replaced or refused artifacts are discarded.
-- Winning a mission heals the hero to their effective maximum HP.
+**Model–View–Controller (MVC)** separates state and rules from presentation and input handling:
 
-## Formulas
+- **Model:** owns game state and rules. It does not read input, render output, or access persistence.
+- **View:** displays information and returns user input without changing game state.
+- **Controller:** interprets that input, invokes the required operations, and decides what the view renders next.
 
-All divisions below use integer division unless stated otherwise. `L` is a level, `XP` is cumulative experience, `S` is map size, and `m` is an artifact's stored modifier.
+Swingy uses **passive MVC**: the view does not call the model directly. Controllers mediate every interaction.
 
-### Limits and starting statistics
+```text
+View (input) → Controller → Model / Services
+View (output) ← Controller ← results and updated state
+                       ↕
+                  Repository
+```
 
-Supported levels satisfy `1 ≤ L ≤ 100`. Artifact modifiers satisfy `0 ≤ m ≤ 1,000,000`; an unequipped hero slot stores `-1`.
+Services and the repository support MVC without being additional MVC layers. Services coordinate gameplay operations involving several model objects. The repository hides the persistence mechanism behind an interface.
 
-| Class | Base HP | Base ATK | Base DEF |
-| --- | ---: | ---: | ---: |
-| Warrior | 125 | 10 | 20 |
-| Rogue | 100 | 15 | 15 |
-| Mage | 75 | 20 | 10 |
+### How Swingy implements it
 
-A new hero starts at level 1, with 0 XP, base HP as current and maximum HP, and no equipped artifacts.
+1. `Main` selects the console or GUI view and constructs the controllers, services, and repository.
+2. The selected view returns raw player input to a controller.
+3. `ApplicationController` handles menu and persistence flow; `MissionController` handles exploration and encounters.
+4. Controllers call model methods directly or delegate map generation and encounters to services.
+5. Controllers pass the resulting state or message back to the view for rendering.
 
-### Map and enemy generation
+### Production source map
 
-For a hero of level `L`, the map size is:
+#### Application and controllers
+
+| Class | Responsibility |
+| --- | --- |
+| `Main` | Composition root: selects the launch mode, constructs dependencies, and starts the application. |
+| `ApplicationController` | Runs the main menu, creates or loads heroes, starts missions, and applies save or delete policy. |
+| `MissionController` | Runs exploration, translates movement and encounter input into actions, and reports the mission outcome. |
+
+#### Gameplay services
+
+| Class | Responsibility |
+| --- | --- |
+| `RoomFactory` | Defines the interface for creating a room for a hero. |
+| `RandomRoomFactory` | Generates the level-sized map and randomly places and creates its enemies. |
+| `EncounterService` | Resolves escape attempts and combat, then applies XP, enemy removal, and artifact drops. |
+| `EncounterResult` | Carries an encounter outcome and its escape, XP, level-up, failure, and artifact details. |
+
+#### Model
+
+| Class | Responsibility |
+| --- | --- |
+| `GameRules` | Defines the supported level range and the map-size and XP-threshold formulas. |
+| `Hero` | Stores hero identity, progression, HP, and equipment and calculates effective statistics. |
+| `HeroClass` | Defines the base HP, attack, and defense of Warrior, Rogue, and Mage heroes. |
+| `Enemy` | Stores an enemy's type, level, calculated statistics, and current HP. |
+| `EnemyType` | Defines the base statistics and display name of Goblin, Orc, and Troll enemies. |
+| `Artifact` | Represents a weapon, armor, or helm modifier that a hero may equip. |
+| `Mission` | Owns the active hero, room, current position, movement results, and retreat position. |
+| `Room` | Represents the square map and manages enemy occupancy by position. |
+| `Position` | Immutable `(x, y)` map coordinate. |
+| `Direction` | Parses movement commands and calculates the next position. |
+
+#### Persistence
+
+| Class | Responsibility |
+| --- | --- |
+| `HeroRepository` | Defines the operations for listing, loading, saving, and deleting heroes. |
+| `CsvStore` | Implements the repository using the `heroes.csv` file. |
+
+#### Views
+
+| Class | Responsibility |
+| --- | --- |
+| `View` | Defines the passive UI boundary: read input, display text, and close. |
+| `ViewFormatter` | Formats hero status, maps, and artifact prompts for either interface. |
+| `ConsoleView` | Implements the view with terminal input and output. |
+| `SwingView` | Implements the view with Swing widgets and a thread-safe input queue. |
+
+## 4. Gameplay and formulas
+
+### Mission and map generation
+
+A hero starts at the center of a square map and wins by reaching any border.
+
+For hero level `L`, the map side length is:
 
 ```text
 S = 5 × (L - 1) + 10 - (L mod 2)
 ```
 
-`S` is always odd. The hero starts at `(S / 2, S / 2)`, using integer division, which is the unique center cell. The number of enemies is:
+For every interior cell except the center:
+
+- there is a 10% chance that an enemy is placed there;
+- enemies never spawn on the border or starting cell;
+- if no enemies spawn, one is placed directly east of the center.
+
+Each enemy type is selected randomly with equal probability. Its level is:
 
 ```text
-enemy count = min(max(1, S² / 16), (S - 2)² - 1)
+enemy level = max(1, hero level - random(0 or 1))
 ```
 
-`(S - 2)² - 1` is the number of interior cells after excluding the center. The factory shuffles those cells and uses the first `enemy count` positions, so enemies cannot overlap, spawn on the hero, or occupy a border.
+### Hero statistics
 
-Movement adds a direction vector to the current position `(x, y)`:
+For class base statistic `B`, level `L`, and the relevant equipment modifier:
 
 ```text
-north = ( 0, -1)    east = (1, 0)
-south = ( 0,  1)    west = (-1, 0)
-next position = (x + dx, y + dy)
+ATK = class base ATK × L + weapon modifier
+DEF = class base DEF × L + armor modifier
+HP  = class base HP  × L + helm modifier
 ```
 
-A move outside `0 ≤ x < S` or `0 ≤ y < S` is blocked. A position wins the mission when `x = 0`, `y = 0`, `x = S - 1`, or `y = S - 1`.
+| Hero class | Base HP | Base ATK | Base DEF |
+| --- | ---: | ---: | ---: |
+| Warrior | 18 | 6 | 4 |
+| Rogue | 15 | 7 | 3 |
+| Mage | 12 | 8 | 2 |
 
-Each enemy first receives a random offset `r ∈ {-1, 0, 1}`:
+New heroes begin at level 1 with 0 XP, full base HP, and equipment modifiers of 0.
+
+### Enemy statistics
+
+Every enemy statistic scales directly with enemy level:
 
 ```text
-candidate level = hero level + r
-enemy level = candidate level, if 1 ≤ candidate level ≤ 100
-              hero level, otherwise
+stat = enemy type base stat × enemy level
 ```
 
-For enemy level `E`, its statistics are:
+| Enemy type | Base HP | Base ATK | Base DEF |
+| --- | ---: | ---: | ---: |
+| Goblin | 10 | 5 | 1 |
+| Orc | 10 | 3 | 3 |
+| Troll | 10 | 1 | 5 |
+
+### Encounters
+
+Combat damage is:
 
 ```text
-enemy maximum HP = 60 + 10 × (E - 1)
-enemy ATK        = 10 +  5 × (E - 1)
-enemy DEF        = 10 +  5 × (E - 1)
+damage = max(1, attacker ATK - defender DEF)
 ```
 
-### Hero statistics and artifacts
+- The hero attacks first in every round.
+- The enemy retaliates only if it survives the hero's attack.
+- An escape attempt succeeds or fails with equal probability (50%).
+- A successful escape returns the hero to the previous cell; failure starts combat.
 
-At level `L`, before equipment, a hero has:
+### XP and artifacts
+
+Defeating an enemy grants:
 
 ```text
-base ATK = class base ATK +  5 × (L - 1)
-base DEF = class base DEF +  5 × (L - 1)
-base HP  = class base HP  + 10 × (L - 1)
+XP reward = enemy level × 100
 ```
 
-The game converts a stored artifact modifier `m` into an effective modifier `effective(m)`:
+The cumulative XP threshold for level `L` is:
 
 ```text
-effective(m) = 0,                         if m < 0
-effective(m) = 1,                         if m = 0
-effective(m) = floor(4.17 × ln(1 + m)),   if m > 0
+threshold(L) = 1000 × L + 450 × (L - 1)²
 ```
 
-The `m < 0` case represents an empty equipment slot. The logarithmic curve keeps large modifiers from increasing power linearly. Final hero statistics are:
+The hero levels up whenever cumulative XP reaches the next threshold.
 
-```text
-ATK        = base ATK + 3 × effective(weapon modifier)
-DEF        = base DEF + 3 × effective(armor modifier)
-maximum HP = base HP  + 5 × effective(helm modifier)
-```
+After a victory:
 
-An artifact drops only after an enemy is defeated. It has a 35% drop chance; when it drops, each slot has a one-in-three chance. For an enemy of level `E`, the artifact modifier is:
+- an artifact has a 50% chance to drop;
+- its slot is chosen randomly from weapon, armor, or helm;
+- its modifier equals the defeated enemy's level;
+- the player may equip it or discard it.
 
-```text
-m = max(0, E - 1)
-```
+## 5. Persistence
 
-Thus a level-1 enemy drops a modifier of 0, which still gives +3 ATK or DEF, or +5 maximum HP because `effective(0) = 1`. Equipping a helm does not heal the hero: current HP becomes `min(current HP, new maximum HP)`.
+`heroes.csv` is stored in the working directory. Each saved hero contains:
 
-### Combat
+- identity (name) and class;
+- level and cumulative XP;
+- current HP;
+- weapon, armor, and helm modifiers.
 
-The hero attacks first in every round. With attacker ATK `A`, defender DEF `D`, and multiplier `K`, damage is:
+A new hero is saved before its first mission. A surviving hero is saved after winning or when quitting during a mission; a hero that dies is removed.
 
-```text
-damage = max(1, A × K / (100 + D))
-```
-
-The hero uses `K = 200`; enemies use `K = 100`:
-
-```text
-hero damage  = max(1, hero ATK  × 200 / (100 + enemy DEF))
-enemy damage = max(1, enemy ATK × 100 / (100 + hero DEF))
-```
-
-After the hero's attack, the enemy attacks only if its HP remains above zero. For either combatant, damage updates HP as:
-
-```text
-new current HP = max(0, previous current HP - damage)
-```
-
-A run succeeds when a random value is below `0.5`, giving it a 50% chance of success. A failed run starts combat immediately.
-
-### Experience and leveling
-
-The threshold to advance from level `L` is:
-
-```text
-threshold(L) = 1,000 × L + 450 × (L - 1)²
-```
-
-A valid hero at level `L` has:
-
-```text
-threshold(L - 1) ≤ XP < threshold(L)
-```
-
-For level 1, the lower bound is 0. The thresholds to leave levels 1, 2, 3, 4, and 5 are 1,000, 2,450, 4,800, 8,050, and 12,200 XP.
-
-Defeating an enemy of level `E` grants:
-
-```text
-XP reward = threshold(E) / 10
-```
-
-The hero's XP is increased by that reward without resetting after a level-up. If the new total crosses one or more thresholds, the hero gains every crossed level. If `G` levels are gained, current HP becomes:
-
-```text
-current HP = min(new maximum HP, previous current HP + 10 × G)
-```
-
-This awards 10 HP per gained level without healing above the new maximum.
-
-## Persistence and exit behavior
-
-Only hero state is persisted: name, class, level, cumulative XP, current HP, and equipped weapon, armor, and helm modifiers. Maps, positions, enemies, and uncollected artifacts are not saved.
-
-The file has no header. Each nonblank line contains:
-
-```text
-name,HERO_CLASS,level,xp,currentHp,weaponMod,armorMod,helmMod
-```
-
-Example:
-
-```text
-Alice,WARRIOR,3,2500,145,4,2,1
-```
-
-A living hero is saved after a mission victory and before an exit from an active mission. A dead hero is deleted. Save, load, list, and delete failures are displayed and are never presented as successful operations.
-
-Database persistence and runtime view switching are not implemented.
+Only hero progression is persistent. Generated maps, enemy positions, enemy state, and active missions are not saved.

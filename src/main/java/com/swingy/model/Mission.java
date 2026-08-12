@@ -15,7 +15,7 @@ public final class Mission {
     public Mission(Hero hero, Room room) {
         this.hero = Objects.requireNonNull(hero, "Hero is required.");
         this.room = Objects.requireNonNull(room, "Room is required.");
-        heroPosition = room.getHeroStart();
+        heroPosition = room.center();
     }
 
     public MoveResult move(Direction direction) {
@@ -28,7 +28,6 @@ public final class Mission {
         previousPosition = heroPosition;
         heroPosition = destination;
         if (room.isBorder(destination)) {
-            hero.healToFull();
             return MoveResult.won();
         }
 

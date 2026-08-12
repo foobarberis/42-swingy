@@ -7,7 +7,6 @@ import java.util.Objects;
 public record EncounterResult(
     Type type,
     boolean escapeFailed,
-    CombatResult combat,
     long xpReward,
     int levelsGained,
     String xpFailure,
@@ -21,22 +20,18 @@ public record EncounterResult(
 
     public EncounterResult {
         Objects.requireNonNull(type, "Encounter result type is required.");
-        if (type != Type.ESCAPED) {
-            Objects.requireNonNull(combat, "Combat result is required.");
-        }
     }
 
     public static EncounterResult escaped() {
-        return new EncounterResult(Type.ESCAPED, false, null, 0L, 0, null, null);
+        return new EncounterResult(Type.ESCAPED, false, 0L, 0, null, null);
     }
 
-    public static EncounterResult heroDied(boolean escapeFailed, CombatResult combat) {
-        return new EncounterResult(Type.HERO_DIED, escapeFailed, combat, 0L, 0, null, null);
+    public static EncounterResult heroDied(boolean escapeFailed) {
+        return new EncounterResult(Type.HERO_DIED, escapeFailed, 0L, 0, null, null);
     }
 
     public static EncounterResult enemyDefeated(
         boolean escapeFailed,
-        CombatResult combat,
         long xpReward,
         int levelsGained,
         String xpFailure,
@@ -45,7 +40,6 @@ public record EncounterResult(
         return new EncounterResult(
             Type.ENEMY_DEFEATED,
             escapeFailed,
-            combat,
             xpReward,
             levelsGained,
             xpFailure,

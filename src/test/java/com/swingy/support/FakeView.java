@@ -1,55 +1,50 @@
 package com.swingy.support;
 
 import com.swingy.view.View;
-import com.swingy.view.ViewInput;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 
 public final class FakeView implements View {
-    private final Deque<ViewInput> inputs = new ArrayDeque<>();
-    private final List<String> outputs = new ArrayList<>();
+    private final Deque<String> inputs = new ArrayDeque<>();
+    private final List<String> output = new ArrayList<>();
+    private boolean closed;
 
-    public FakeView enqueue(String... lines) {
-        for (String line : lines) {
-            inputs.addLast(ViewInput.line(line));
-        }
-        return this;
+    public FakeView(String... inputs) {
+        this.inputs.addAll(Arrays.asList(inputs));
     }
 
-    public FakeView enqueue(ViewInput input) {
+    public void submit(String input) {
         inputs.addLast(input);
-        return this;
-    }
-
-    public List<String> outputs() {
-        return List.copyOf(outputs);
     }
 
     @Override
-    public void println(String text) {
-        outputs.add(text);
+    public String readInput() {
+        return inputs.pollFirst();
     }
 
     @Override
-    public void renderStatus(String status) {
-        outputs.add("STATUS:" + status);
-    }
-
-    @Override
-    public void renderMap(String mapText) {
-        outputs.add("MAP:" + mapText.replace("\n", "|"));
-    }
-
-    @Override
-    public ViewInput readInput() {
-        return inputs.isEmpty() ? ViewInput.endOfInput() : inputs.removeFirst();
+    public void show(String text) {
+        output.add(text);
     }
 
     @Override
     public void close() {
-        inputs.clear();
+        closed = true;
+    }
+
+    public List<String> output() {
+        return List.copyOf(output);
+    }
+
+    public String renderedText() {
+        return String.join("\n", output);
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 }

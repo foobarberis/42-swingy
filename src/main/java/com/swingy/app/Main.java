@@ -2,7 +2,6 @@ package com.swingy.app;
 
 import com.swingy.controller.ApplicationController;
 import com.swingy.controller.MissionController;
-import com.swingy.logic.CombatService;
 import com.swingy.logic.EncounterService;
 import com.swingy.logic.RandomRoomFactory;
 import com.swingy.persistence.CsvStore;
@@ -48,11 +47,10 @@ public final class Main {
             Random random = new Random();
             MissionController mission = new MissionController(
                 view,
-                view,
                 new RandomRoomFactory(random),
-                new EncounterService(new CombatService(), random)
+                new EncounterService(random)
             );
-            new ApplicationController(view, view, repository, validator, mission).run();
+            new ApplicationController(view, repository, validator, mission).run();
             return 0;
         } catch (RuntimeException exception) {
             view.close();

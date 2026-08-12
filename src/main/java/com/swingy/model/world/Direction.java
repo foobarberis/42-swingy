@@ -17,10 +17,7 @@ public enum Direction {
     }
 
     public Position move(Position position) {
-        return new Position(
-            Math.addExact(position.x(), dx),
-            Math.addExact(position.y(), dy)
-        );
+        return new Position(position.x() + dx, position.y() + dy);
     }
 
     public static Direction parse(String input) {

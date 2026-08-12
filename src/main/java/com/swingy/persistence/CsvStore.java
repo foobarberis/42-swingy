@@ -34,10 +34,7 @@ public final class CsvStore implements HeroRepository {
 
     @Override
     public List<Hero> list() throws IOException {
-        if (!Files.exists(path)) {
-            return List.of();
-        }
-        return readAllStrict();
+        return Files.exists(path) ? readAllStrict() : List.of();
     }
 
     @Override
@@ -66,13 +63,13 @@ public final class CsvStore implements HeroRepository {
         boolean replaced = false;
         for (int index = 0; index < heroes.size(); index++) {
             if (heroes.get(index).getName().equals(hero.getName())) {
-                heroes.set(index, hero.copy());
+                heroes.set(index, hero);
                 replaced = true;
                 break;
             }
         }
         if (!replaced) {
-            heroes.add(hero.copy());
+            heroes.add(hero);
         }
         writeAll(heroes);
     }
@@ -93,8 +90,8 @@ public final class CsvStore implements HeroRepository {
         List<Hero> heroes = new ArrayList<>();
         Set<String> names = new HashSet<>();
         for (int index = 0; index < lines.size(); index++) {
-            String line = lines.get(index);
             int lineNumber = index + 1;
+            String line = lines.get(index);
             if (line.isBlank()) {
                 throw corrupted(lineNumber, "blank line");
             }
@@ -107,7 +104,7 @@ public final class CsvStore implements HeroRepository {
         return heroes;
     }
 
-    private Hero parseHero(String line, int lineNumber) throws SaveFileCorruptedException {
+    private Hero parseHero(String line, int lineNumber) throws IOException {
         String[] parts = line.split(",", -1);
         if (parts.length != 8) {
             throw corrupted(lineNumber, "expected 8 columns but found " + parts.length);
@@ -123,18 +120,20 @@ public final class CsvStore implements HeroRepository {
         int level = parseInt(parts[2], "level", lineNumber);
         long xp = parseLong(parts[3], "experience", lineNumber);
         int currentHp = parseInt(parts[4], "hit points", lineNumber);
-        int weaponMod = parseInt(parts[5], "weapon modifier", lineNumber);
-        int armorMod = parseInt(parts[6], "armor modifier", lineNumber);
-        int helmMod = parseInt(parts[7], "helm modifier", lineNumber);
+        int weaponModifier = parseInt(parts[5], "weapon modifier", lineNumber);
+        int armorModifier = parseInt(parts[6], "armor modifier", lineNumber);
+        int helmModifier = parseInt(parts[7], "helm modifier", lineNumber);
 
-        Hero hero = Hero.builder(parts[0], heroClass)
-            .level(level)
-            .xp(xp)
-            .currentHp(currentHp)
-            .weaponMod(weaponMod)
-            .armorMod(armorMod)
-            .helmMod(helmMod)
-            .build();
+        Hero hero = Hero.restore(
+            parts[0],
+            heroClass,
+            level,
+            xp,
+            currentHp,
+            weaponModifier,
+            armorModifier,
+            helmModifier
+        );
         String validationFailure = validationFailure(hero);
         if (validationFailure != null) {
             throw corrupted(lineNumber, validationFailure);
@@ -142,8 +141,7 @@ public final class CsvStore implements HeroRepository {
         return hero;
     }
 
-    private int parseInt(String token, String field, int lineNumber)
-        throws SaveFileCorruptedException {
+    private int parseInt(String token, String field, int lineNumber) throws IOException {
         try {
             return Integer.parseInt(token);
         } catch (NumberFormatException exception) {
@@ -151,8 +149,7 @@ public final class CsvStore implements HeroRepository {
         }
     }
 
-    private long parseLong(String token, String field, int lineNumber)
-        throws SaveFileCorruptedException {
+    private long parseLong(String token, String field, int lineNumber) throws IOException {
         try {
             return Long.parseLong(token);
         } catch (NumberFormatException exception) {
@@ -173,43 +170,36 @@ public final class CsvStore implements HeroRepository {
 
     private void writeAll(List<Hero> heroes) throws IOException {
         Path parent = Objects.requireNonNull(path.getParent(), "Save path parent is required.");
-        String fileName = Objects.requireNonNull(
-            path.getFileName(),
-            "Save path file name is required."
-        ).toString();
+        String fileName = path.getFileName().toString();
         String prefix = fileName.length() >= 3 ? fileName : fileName + "___";
-        Path tempPath = null;
+        Path temporary = null;
         Throwable failure = null;
         try {
-            tempPath = Files.createTempFile(parent, prefix + ".", ".tmp");
-            List<String> lines = new ArrayList<>(heroes.size());
-            for (Hero hero : heroes) {
-                lines.add(serializeHero(hero));
-            }
-            Files.write(tempPath, lines, StandardCharsets.UTF_8);
+            temporary = Files.createTempFile(parent, prefix + ".", ".tmp");
+            List<String> lines = heroes.stream().map(this::serializeHero).toList();
+            Files.write(temporary, lines, StandardCharsets.UTF_8);
             try {
                 Files.move(
-                    tempPath,
+                    temporary,
                     path,
                     StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE
                 );
             } catch (AtomicMoveNotSupportedException exception) {
-                Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException | RuntimeException exception) {
             failure = exception;
             throw exception;
         } finally {
-            if (tempPath != null) {
+            if (temporary != null) {
                 try {
-                    Files.deleteIfExists(tempPath);
+                    Files.deleteIfExists(temporary);
                 } catch (IOException cleanupException) {
-                    if (failure != null) {
-                        failure.addSuppressed(cleanupException);
-                    } else {
+                    if (failure == null) {
                         throw cleanupException;
                     }
+                    failure.addSuppressed(cleanupException);
                 }
             }
         }
@@ -223,21 +213,21 @@ public final class CsvStore implements HeroRepository {
             Integer.toString(hero.getLevel()),
             Long.toString(hero.getXp()),
             Integer.toString(hero.getCurrentHp()),
-            Integer.toString(hero.getWeaponMod()),
-            Integer.toString(hero.getArmorMod()),
-            Integer.toString(hero.getHelmMod())
+            Integer.toString(hero.getWeaponModifier()),
+            Integer.toString(hero.getArmorModifier()),
+            Integer.toString(hero.getHelmModifier())
         );
     }
 
-    private SaveFileCorruptedException corrupted(int lineNumber, String reason) {
-        return new SaveFileCorruptedException(path, lineNumber, reason);
+    private IOException corrupted(int lineNumber, String reason) {
+        return new IOException(corruptionMessage(lineNumber, reason));
     }
 
-    private SaveFileCorruptedException corrupted(
-        int lineNumber,
-        String reason,
-        Throwable cause
-    ) {
-        return new SaveFileCorruptedException(path, lineNumber, reason, cause);
+    private IOException corrupted(int lineNumber, String reason, Throwable cause) {
+        return new IOException(corruptionMessage(lineNumber, reason), cause);
+    }
+
+    private String corruptionMessage(int lineNumber, String reason) {
+        return "Save file " + path.getFileName() + " is corrupted at line " + lineNumber + ": " + reason + ".";
     }
 }

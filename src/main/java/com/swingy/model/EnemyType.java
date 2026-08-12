@@ -1,15 +1,15 @@
 package com.swingy.model;
 
-public enum HeroClass {
-    WARRIOR(18, 6, 4),
-    ROGUE(15, 7, 3),
-    MAGE(12, 8, 2);
+public enum EnemyType {
+    GOBLIN(10, 5, 1),
+    ORC(10, 3, 3),
+    TROLL(10, 1, 5);
 
     private final int baseHp;
     private final int baseAttack;
     private final int baseDefense;
 
-    HeroClass(int baseHp, int baseAttack, int baseDefense) {
+    EnemyType(int baseHp, int baseAttack, int baseDefense) {
         this.baseHp = baseHp;
         this.baseAttack = baseAttack;
         this.baseDefense = baseDefense;
@@ -27,12 +27,11 @@ public enum HeroClass {
         return baseDefense;
     }
 
-    public static HeroClass fromCreateToken(String token) {
-        return switch (token) {
-            case "warrior" -> WARRIOR;
-            case "rogue" -> ROGUE;
-            case "mage" -> MAGE;
-            default -> null;
+    public String displayName() {
+        return switch (this) {
+            case GOBLIN -> "Goblin";
+            case ORC -> "Orc";
+            case TROLL -> "Troll";
         };
     }
 }

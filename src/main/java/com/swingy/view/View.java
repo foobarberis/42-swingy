@@ -1,4 +1,9 @@
 package com.swingy.view;
 
-public interface View extends InputPort, GameView {
+public interface View {
+    String readInput();
+
+    void show(String text);
+
+    void close();
 }

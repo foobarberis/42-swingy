@@ -8,36 +8,36 @@ import java.util.Random;
 public final class SequenceRandom extends Random {
     private static final long serialVersionUID = 1L;
 
-    private final Deque<Integer> ints;
-    private final Deque<Double> doubles;
-    private final int defaultInt;
-    private final double defaultDouble;
+    private final Deque<Integer> integers;
+    private final Deque<Boolean> booleans;
+    private final int defaultInteger;
+    private final boolean defaultBoolean;
 
-    public SequenceRandom(List<Integer> ints, List<Double> doubles) {
-        this(ints, doubles, 0, 1.0);
+    public SequenceRandom(List<Integer> integers, List<Boolean> booleans) {
+        this(integers, booleans, 1, false);
     }
 
     public SequenceRandom(
-        List<Integer> ints,
-        List<Double> doubles,
-        int defaultInt,
-        double defaultDouble
+        List<Integer> integers,
+        List<Boolean> booleans,
+        int defaultInteger,
+        boolean defaultBoolean
     ) {
         super(0L);
-        this.ints = new ArrayDeque<>(ints);
-        this.doubles = new ArrayDeque<>(doubles);
-        this.defaultInt = defaultInt;
-        this.defaultDouble = defaultDouble;
+        this.integers = new ArrayDeque<>(integers);
+        this.booleans = new ArrayDeque<>(booleans);
+        this.defaultInteger = defaultInteger;
+        this.defaultBoolean = defaultBoolean;
     }
 
     @Override
     public int nextInt(int bound) {
-        int value = ints.isEmpty() ? defaultInt : ints.removeFirst();
+        int value = integers.isEmpty() ? defaultInteger : integers.removeFirst();
         return Math.floorMod(value, bound);
     }
 
     @Override
-    public double nextDouble() {
-        return doubles.isEmpty() ? defaultDouble : doubles.removeFirst();
+    public boolean nextBoolean() {
+        return booleans.isEmpty() ? defaultBoolean : booleans.removeFirst();
     }
 }
