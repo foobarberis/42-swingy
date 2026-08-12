@@ -21,21 +21,15 @@ java -jar target/swingy.jar console
 java -jar target/swingy.jar gui
 ```
 
-Maven provides equivalent launch commands:
-
-```bash
-mvn clean package exec:exec@run
-mvn -Pgui clean package exec:exec@run
-```
-
 With `mise` installed, use the project wrapper:
 
 ```bash
 mise install
-./run test
-./run build
-./run cli
-./run gui
+./swingy.sh test
+./swingy.sh clean
+./swingy.sh build
+./swingy.sh cli
+./swingy.sh gui
 ```
 
 ## Commands
