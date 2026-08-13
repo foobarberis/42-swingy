@@ -39,4 +39,11 @@ class HeroTest {
         healthy.equip(new Artifact(Artifact.Slot.HELM, 1));
         assertEquals(16, healthy.getCurrentHp());
     }
+
+    @Test
+    void healingToFullUsesEffectiveMaximumHp() {
+        Hero hero = Hero.restore("W", HeroClass.WARRIOR, 2, 1_000, 3, 0, 0, 5);
+        hero.healToFull();
+        assertEquals(41, hero.getCurrentHp());
+    }
 }

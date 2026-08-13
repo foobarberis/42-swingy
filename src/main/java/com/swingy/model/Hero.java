@@ -140,6 +140,10 @@ public final class Hero {
         currentHp = Math.max(0, currentHp - damage);
     }
 
+    public void healToFull() {
+        currentHp = getMaxHp();
+    }
+
     public Artifact equip(Artifact artifact) {
         Objects.requireNonNull(artifact, "Artifact is required.");
         Artifact replaced = getArtifact(artifact.slot());

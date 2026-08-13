@@ -147,6 +147,8 @@ public final class ApplicationController {
     private boolean finishMission(Hero hero, MissionController.Result result) {
         return switch (result) {
             case WON -> {
+                hero.healToFull();
+                view.show("Your health has been fully restored.");
                 try {
                     repository.save(hero);
                     view.show("Progress saved.");

@@ -68,6 +68,21 @@ class ApplicationControllerTest {
         assertTrue(view.renderedText().contains("Goodbye!"));
     }
 
+    @Test
+    void victoryRestoresFullHealthBeforeSaving() {
+        FakeView view = new FakeView("load Ada", "north", "north", "north", "north", "quit");
+        MemoryRepository repository = new MemoryRepository();
+        Hero hero = Hero.restore("Ada", HeroClass.WARRIOR, 1, 0, 3, 0, 0, 0);
+        repository.heroes.add(hero);
+
+        controller(view, repository).run();
+
+        assertEquals(18, hero.getCurrentHp());
+        assertEquals(1, repository.saveCalls);
+        assertTrue(view.renderedText().contains("Your health has been fully restored."));
+        assertTrue(view.renderedText().contains("Progress saved."));
+    }
+
     private ApplicationController controller(FakeView view, MemoryRepository repository) {
         MissionController mission = new MissionController(
             view,

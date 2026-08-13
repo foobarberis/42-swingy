@@ -244,6 +244,6 @@ After a victory:
 - current HP;
 - weapon, armor, and helm modifiers.
 
-A new hero is saved before its first mission. A surviving hero is saved after winning or when quitting during a mission; a hero that dies is removed.
+A new hero is saved before its first mission. After winning, a surviving hero is restored to full HP and saved. Quitting during a mission saves the hero's current HP; a hero that dies is removed.
 
 Only hero progression is persistent. Generated maps, enemy positions, enemy state, and active missions are not saved.
